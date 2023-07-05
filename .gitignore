@@ -1,5 +1,5 @@
 *.pcapng
-SECRETS.py
+SECRETS.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -2,6 +2,8 @@
 # `pip install httpx[http2]`
 
 from fansync import FanSync
+import jsonpickle
+import json
 
 import httpx
 from SECRETS import *
@@ -30,13 +32,25 @@ from SECRETS import *
 # print(r.json())
 
 
-f = FanSync()
-f.login(EMAIL, PASSWORD)
 
-f.fuzz("https://fanimation.apps.exosite.io/api:1/fw/list/[]")
+try :
+    f = FanSync()
+    f.login(EMAIL, PASSWORD)
+    f.ws_connect()
+    devices = f.ws_list_devices()
+    f.ws_get_device(devices[0].device)
+
+finally:
+    f.ws_close()
+
+
+
+
+
+# f.fuzz("https://fanimation.apps.exosite.io/api:1/fw/list/[]")
 
 # Describes the capacities of the various fan/light combinations
-f.fuzz("https://fanimation.apps.exosite.io/api:1/info-model")
+# f.fuzz("https://fanimation.apps.exosite.io/api:1/info-model")
 
 # List the firmware revisions for a given model
 # f.fuzz("https://fanimation.apps.exosite.io/api:1/fw/list/[\"OdynCustom-FDR1L2\"]")

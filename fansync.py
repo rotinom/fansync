@@ -1,82 +1,12 @@
+from datetime import datetime
 from typing import Optional
 
 import requests
 import ssl
 from websockets.sync.client import connect
 import json
-from collections.abc import Sequence
-from pydantic import BaseModel, Field
+from models import *
 
-
-class DeviceProperties(BaseModel):
-    displayName: str
-    deviceHasBeenConfigured: bool
-    ignoreUpdateVersion: str
-
-
-class Device(BaseModel):
-    owner: str = None
-    device: str = None
-    role: str = None
-    properties: DeviceProperties
-
-
-class Request(BaseModel):
-    id: int
-    request: str
-    data: Optional[dict[str, str]] = None
-
-
-class GetDeviceRequest(Request):
-    device: str
-
-
-class Response(BaseModel):
-    id: int
-    status: str
-    response: str
-
-
-class User(BaseModel):
-    role: str
-    email: str
-
-
-class GetDeviceEsh(BaseModel):
-    brand: str
-    esh_version: str
-    class_: int = Field(alias="class")  # keyword in Python
-    device_id: str
-    model: str
-
-
-class GetDeviceModule(BaseModel):
-    firmware_version: str
-    local_ip: str
-    ssid: str
-    mac_address: str
-
-
-class GetDeviceProfile(BaseModel):
-    module: GetDeviceModule
-    esh: GetDeviceEsh
-
-    class Config:
-        exclude = ['cert']
-
-
-class GetDeviceResponseData(BaseModel):
-    users: list[User]
-    status: dict[str, int]
-    fields: list[str]
-    profile: GetDeviceProfile
-    # calendar - excluded
-    device: str
-    connected: int
-    device_state: str
-
-    # class Config:
-    #     exclude = ['calendar']
 
 
 class FanSync:
@@ -98,8 +28,10 @@ class FanSync:
             print("Failed to login")
 
         ret = r.json()
-        self._sessionId = ret["id"]
+        self._id = int(ret["id"])
         self._token = ret["token"]
+
+        print(f"Got token of: {self._token}")
 
     def _get_id(self):
         ret = self._id
@@ -113,7 +45,9 @@ class FanSync:
         ssl_ctx.check_hostname = False
         ssl_ctx.verify_mode = ssl.CERT_NONE
 
-        self._websocket = connect("wss://fanimation.apps.exosite.io:443/api:1/phone", ssl_context=ssl_ctx)
+        host = "wss://fanimation.apps.exosite.io:443/api:1/phone"
+        print(f"Connecting to host: {host}")
+        self._websocket = connect(host, ssl_context=ssl_ctx)
 
         self.ws_login()
 
@@ -132,7 +66,7 @@ class FanSync:
         })
         self._websocket.send(data)
         message = self._websocket.recv()
-        print(f"Received: {message}")
+        # print(f"Received: {message}")
 
 
         print("Provisioning token..")
@@ -145,42 +79,52 @@ class FanSync:
         })
         self._websocket.send(data)
         message = self._websocket.recv()
-        print(f"Received: {message}")
+        # print(f"Received: {message}")
 
 
     def ws_list_devices(self):
 
-        print("Listing devices...")
-        data = json.dumps({
-            "id": self._get_id(),
-            "request": "lst_device"
-        })
-        self._websocket.send(data)
-        message = json.loads(self._websocket.recv())
-        print(f"Received: {message}")
+        # print("Listing devices...")
+        req = ListDevicesRequest(
+            id=self._get_id(),
+            request="lst_device"
+        )
 
-        ret = []
-        for d in message["data"]:
-            ret.append(Device(**d))
-
+        self._websocket.send(json.dumps(req.model_dump()))
+        ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
+        # print(f"Received: {ret}")
         return ret
 
-    def ws_get_device(self, device_id):
+    def ws_get_device(self, device: ListDevicesResponse.Device):
+        # print(f"Querying device '{device.properties.displayName} ({device.device})'")
+
         req = GetDeviceRequest(
             id=self._get_id(),
             request="get",
-            device=device_id)
+            device=device.device)
 
         self._websocket.send(json.dumps(req.model_dump()))
 
-        message = json.loads(self._websocket.recv())
-        print(f"Received: {message}")
+        ret = GetDeviceResponse(**json.loads(self._websocket.recv()))
 
-        ret = []
-
-        ret.append(GetDeviceResponseData(**message["data"]))
+        fan_power = "On" if ret.data.get_fan_power() else "Off"
+        lgt_power = "On" if ret.data.get_light_power() else "Off"
+        home_away = "On" if ret.data.get_home_away() else "Off"
 
         print(ret)
+        print(f""" \
+{datetime.now()}
+    {ret.data.profile.esh.brand} {ret.data.profile.esh.model}
+        Light: {lgt_power:3} ({ret.data.get_light_percent()}%)
+        Fan:   {fan_power:3} ({ret.data.get_fan_percent()}%) 
+            Breeze Mode: {ret.data.get_fan_mode()}
+            Fan Direction: {ret.data.get_fan_direction()}
+        Home Away: {ret.data.get_home_away()}
+        
+        Unknown:
+            H05: {ret.data.status['H05']}
+            H0E: {ret.data.status['H0E']}
+""")
 
 
 

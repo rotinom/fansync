@@ -1,0 +1,133 @@
+
+from collections.abc import Sequence
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+FAN_POWER = 'H00'
+FAN_MODE = 'H01'
+FAN_PERCENT = 'H02'
+FAN_DIRECTION= 'H06'
+
+LIGHT_POWER = 'H0B'
+LIGHT_PERCENT = 'H0C'
+
+HOME_AWAY = 'H0D'
+
+# H0E - 262 (observed)
+
+
+fan_mode_ = {
+    0: "Normal",
+    1: "Fresh Air"
+}
+
+fan_direction_ = {
+    0: "Forward",
+    1: "Reverse"
+}
+
+
+
+
+class Request(BaseModel):
+    id: int
+    request: str
+    data: Optional[dict[str, str]] = None
+
+class Response(BaseModel):
+    id: int
+    status: str
+    response: str
+
+
+class ListDevicesRequest(Request):
+    pass
+
+class  ListDevicesResponse(Response):
+    class Properties(BaseModel):
+        displayName: str
+        deviceHasBeenConfigured: bool
+        ignoreUpdateVersion: str
+
+    class Device(BaseModel):
+        owner: str = None
+        device: str = None
+        role: str = None
+        properties: 'Properties'
+
+    data: list[Device]
+
+
+class GetDeviceRequest(Request):
+    device: str
+
+
+
+
+class User(BaseModel):
+    role: str
+    email: str
+
+
+class GetDeviceResponse(Response):
+
+    class Module(BaseModel):
+        firmware_version: str
+        local_ip: str
+        ssid: str
+        mac_address: str
+
+    class Esh(BaseModel):
+        brand: str
+        esh_version: str
+        class_: int = Field(alias="class")  # keyword in Python
+        device_id: str
+        model: str
+
+    class Data(BaseModel):
+
+
+
+        class Profile(BaseModel):
+            module: 'GetDeviceResponse.Module'  # forward reference
+            esh: 'GetDeviceResponse.Esh'        # forward reference
+
+            class Config:
+                exclude = ['cert']
+
+        users: list[User]
+        status: dict[str, int]
+        fields: list[str]
+        profile: Profile
+        # calendar - excluded
+        device: str
+        connected: int
+        device_state: str
+
+        def get_fan_percent(self):
+            return self.status[FAN_PERCENT]
+
+        def get_fan_power(self):
+            return self.status[FAN_POWER] == 1
+
+        def get_fan_mode(self):
+            return fan_mode_[self.status[FAN_MODE]]
+
+        def get_fan_direction(self):
+            return fan_direction_[self.status[FAN_DIRECTION]]
+
+        def get_light_percent(self):
+            return self.status[LIGHT_PERCENT]
+
+        def get_light_power(self):
+            return self.status[LIGHT_POWER]
+
+        def get_home_away(self):
+            return self.status[HOME_AWAY] == 1
+
+        # class Config:
+        #     exclude = ['calendar']
+
+    data: Data
+

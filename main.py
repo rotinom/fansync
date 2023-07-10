@@ -1,6 +1,6 @@
 # `pip install httpx`
 # `pip install httpx[http2]`
-
+import time
 from fansync import FanSync
 import jsonpickle
 import json
@@ -37,8 +37,11 @@ try :
     f = FanSync()
     f.login(EMAIL, PASSWORD)
     f.ws_connect()
-    devices = f.ws_list_devices()
-    f.ws_get_device(devices[0].device)
+    listDeviceResponse = f.ws_list_devices()
+    for i in range(10):
+        time.sleep(1.0)
+        for device in listDeviceResponse.data:
+            f.ws_get_device(device)
 
 finally:
     f.ws_close()

@@ -4,28 +4,32 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-FAN_POWER = 'H00'
-FAN_MODE = 'H01'
-FAN_PERCENT = 'H02'
-FAN_DIRECTION= 'H06'
+from bidict import *
 
-LIGHT_POWER = 'H0B'
-LIGHT_PERCENT = 'H0C'
+# This is dynamically driven from values that come from
+# GET /api:1/info-model
+field_mapping_ = bidict({
+    'FAN_POWER': 'H00',
+    'FAN_MODE': 'H01',
+    'FAN_PERCENT': 'H02',
+    'FAN_DIRECTION': 'H06',
+    'LIGHT_POWER': 'H0B',
+    'LIGHT_PERCENT': 'H0C',
+    'HOME_AWAY': 'H0D',
+    'UNKNOWN1': 'H05',  # "TIMER" OR "FAN_LEARN_LOAD"
+    'ERROR_CODE': 'H0E'  # OBSERVED VALUE '262'
+})
 
-HOME_AWAY = 'H0D'
 
-# H0E - 262 (observed)
-
-
-fan_mode_ = {
+fan_mode_ = bidict({
     0: "Normal",
     1: "Fresh Air"
-}
+})
 
-fan_direction_ = {
+fan_direction_ = bidict({
     0: "Forward",
     1: "Reverse"
-}
+})
 
 
 
@@ -106,25 +110,25 @@ class GetDeviceResponse(Response):
         device_state: str
 
         def get_fan_percent(self):
-            return self.status[FAN_PERCENT]
+            return self.status[field_mapping_['FAN_PERCENT']]
 
         def get_fan_power(self):
-            return self.status[FAN_POWER] == 1
+            return self.status[field_mapping_['FAN_POWER']] == 1
 
         def get_fan_mode(self):
-            return fan_mode_[self.status[FAN_MODE]]
+            return fan_mode_[self.status[field_mapping_['FAN_MODE']]]
 
         def get_fan_direction(self):
-            return fan_direction_[self.status[FAN_DIRECTION]]
+            return fan_direction_[self.status[field_mapping_['FAN_DIRECTION']]]
 
         def get_light_percent(self):
-            return self.status[LIGHT_PERCENT]
+            return self.status[field_mapping_['LIGHT_PERCENT']]
 
         def get_light_power(self):
-            return self.status[LIGHT_POWER]
+            return self.status[field_mapping_['LIGHT_POWER']]
 
         def get_home_away(self):
-            return self.status[HOME_AWAY] == 1
+            return self.status[field_mapping_['HOME_AWAY']] == 1
 
         # class Config:
         #     exclude = ['calendar']

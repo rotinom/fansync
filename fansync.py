@@ -6,6 +6,7 @@ import ssl
 from websockets.sync.client import connect
 import json
 from models import *
+from threading import *
 
 
 
@@ -18,9 +19,28 @@ class FanSync:
         self._token = None
         self._id = 1
         self._websocket = None
+        self._ws_recv_thread = Thread(target=self._ws_recv)
+
+    def _ws_recv(self):
+        while True:
+            message = self._websocket.recv()
+            print(message)
 
 
     def login(self, email, password):
+
+        options_headers = {
+            "access-control-request-method": "POST",
+            "origin": "http://localhost",
+            "access-control-request-headers": "content-type"
+        }
+
+        o = self._client.options('https://fanimation.apps.exosite.io/api:1/session',
+                                 headers=options_headers)
+        if o.status_code != 200:
+            print("Failed to set login OPTIONS")
+
+
         r = self._client.post('https://fanimation.apps.exosite.io/api:1/session',
                               json={"email": email, "password": password})
 
@@ -49,7 +69,11 @@ class FanSync:
         print(f"Connecting to host: {host}")
         self._websocket = connect(host, ssl_context=ssl_ctx)
 
+        print("Logging in websocket")
         self.ws_login()
+
+        print("Starting receive thread")
+        self._ws_recv_thread.start()
 
     def ws_close(self):
         self._websocket.close()
@@ -91,9 +115,9 @@ class FanSync:
         )
 
         self._websocket.send(json.dumps(req.model_dump()))
-        ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
+        # ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
         # print(f"Received: {ret}")
-        return ret
+        # return ret
 
     def ws_get_device(self, device: ListDevicesResponse.Device):
         # print(f"Querying device '{device.properties.displayName} ({device.device})'")
@@ -105,62 +129,64 @@ class FanSync:
 
         self._websocket.send(json.dumps(req.model_dump()))
 
-        ret = GetDeviceResponse(**json.loads(self._websocket.recv()))
+#         raw = json.loads(self._websocket.recv())
+#         print(raw)
+#
+#         ret = GetDeviceResponse(**raw)
+#
+#         fan_power = "On" if ret.data.get_fan_power() else "Off"
+#         lgt_power = "On" if ret.data.get_light_power() else "Off"
+#         home_away = "On" if ret.data.get_home_away() else "Off"
+#
+#         print(f""" \
+# {datetime.now()}
+#     {ret.data.profile.esh.brand} {ret.data.profile.esh.model}
+#         Light: {lgt_power:3} ({ret.data.get_light_percent()}%)
+#         Fan:   {fan_power:3} ({ret.data.get_fan_percent()}%)
+#             Breeze Mode: {ret.data.get_fan_mode()}
+#             Fan Direction: {ret.data.get_fan_direction()}
+#         Home Away: {ret.data.get_home_away()}
+#
+#         Unknown:
+#             H05: {ret.data.status['H05']}
+#             H0E: {ret.data.status['H0E']}
+# """)
 
-        fan_power = "On" if ret.data.get_fan_power() else "Off"
-        lgt_power = "On" if ret.data.get_light_power() else "Off"
-        home_away = "On" if ret.data.get_home_away() else "Off"
-
-        print(ret)
-        print(f""" \
-{datetime.now()}
-    {ret.data.profile.esh.brand} {ret.data.profile.esh.model}
-        Light: {lgt_power:3} ({ret.data.get_light_percent()}%)
-        Fan:   {fan_power:3} ({ret.data.get_fan_percent()}%) 
-            Breeze Mode: {ret.data.get_fan_mode()}
-            Fan Direction: {ret.data.get_fan_direction()}
-        Home Away: {ret.data.get_home_away()}
-        
-        Unknown:
-            H05: {ret.data.status['H05']}
-            H0E: {ret.data.status['H0E']}
-""")
 
 
-
-    def fuzz(self, url, use_auth=False):
-
-        headers = []
-        if use_auth:
-            headers = {"Authorization:",  "Bearer %s" % self._token}
-
-        methods = [
-            self._client.get,
-            self._client.head,
-            self._client.post,
-            self._client.put,
-            # self._client.delete,
-            self._client.options,
-            self._client.patch
-        ]
-
-        ignore_codes = set()
-        ignore_codes.add(404)
-        ignore_codes.add(415)
-
-        for m in methods:
-
-            r = m(url, headers=headers)
-            if r.status_code in ignore_codes:
-                continue
-
-            print("%s %s - %s" % (m.__name__.upper(), url, r.status_code))
-            try:
-                if r.content.strip() != "":
-                    pass
-                    print(r.content)
-                    # print(r.headers)
-            except:
-                # Swallow
-                pass
+    # def fuzz(self, url, use_auth=False):
+    #
+    #     headers = []
+    #     if use_auth:
+    #         headers = {"Authorization:",  "Bearer %s" % self._token}
+    #
+    #     methods = [
+    #         self._client.get,
+    #         self._client.head,
+    #         self._client.post,
+    #         self._client.put,
+    #         # self._client.delete,
+    #         self._client.options,
+    #         self._client.patch
+    #     ]
+    #
+    #     ignore_codes = set()
+    #     ignore_codes.add(404)
+    #     ignore_codes.add(415)
+    #
+    #     for m in methods:
+    #
+    #         r = m(url, headers=headers)
+    #         if r.status_code in ignore_codes:
+    #             continue
+    #
+    #         print("%s %s - %s" % (m.__name__.upper(), url, r.status_code))
+    #         try:
+    #             if r.content.strip() != "":
+    #                 pass
+    #                 print(r.content)
+    #                 # print(r.headers)
+    #         except:
+    #             # Swallow
+    #             pass
 

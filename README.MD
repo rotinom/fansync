@@ -201,7 +201,7 @@ The login process appears to be a two-phase approach.  First you fire off an
 `OPTIONS` request (although it doesn't appear to be strictly required) and then
 you `POST` a blob w/ your email.password and get back a token and an ID
 
-POST https://fanimation.apps.exosite.io/api:1/session
+`POST https://fanimation.apps.exosite.io/api:1/session`
 
 Request Body:
 ```
@@ -220,7 +220,8 @@ Response:
 ```
 
 Websocket connect
-`wss://`
+`wss://fanimation.apps.exosite.io:443/api:1/phone`
+
 
 Request:
 ```
@@ -232,8 +233,51 @@ Response:
 {"status":"ok","response":"login","id":1}
 ```
 
-Websocket connection is now authorized...
+Websocket connection is now authorized, we're connected and ready to roll.
+
+We then need to list some things to get the devices in our account.  The real phone app pulls
+down  configuration stuff which is really boring to us in the HA world, so I'll gloss
+over it for now.  We see:
+
+```
+# Not needed?
+{"id":2,"request":"provision_token","data":{"expires_in":2592000}}
+
+# We need this
+{"id":3,"request":"lst_device"}
+
+# FanSync group configs?  IDK, I don't use it.  Boring...
+{"id":4,"request":"lst_group"}
+
+# Get info about the user.  Again, boring from a HA perspective
+{"id":5,"request":"get_user_data"}
+
+# Big yawn-fest too.  Personal data. Config stuff for Alexa and IFTTT, but boring
+# for HA to use
+{"id":6,"request":"get_me"}
+```
 
 
-For now, look at the models and the provided api's to query devices, 
-and set states.  This should be documented and coming soon.
+`lst_device` response:
+
+*This appears to return a list of all the devices in the account.  This would then be used
+as input to the `get` request*
+```
+{
+  "status": "ok",
+  "response": "lst_device",
+  "data": [
+    {
+      "owner": "<owner_email_addr>",
+      "device": "<device_id>",
+      "properties": {
+        "displayName": "<Fan Display Name In App>",
+        "deviceHasBeenConfigured": true,
+        "ignoreUpdateVersion": "1.7.1"
+      },
+      "role": "owner"
+    }
+  ],
+  "id": 3
+}
+```

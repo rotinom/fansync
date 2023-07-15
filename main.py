@@ -1,3 +1,5 @@
+#!./venv/bin/python
+
 # `pip install httpx`
 # `pip install httpx[http2]`
 import time
@@ -44,7 +46,7 @@ try :
     #     for device in listDeviceResponse.data:
     #         f.ws_get_device(device)
 
-    time.sleep(10.0)
+    time.sleep(100.0)
 finally:
     f.ws_close()
 

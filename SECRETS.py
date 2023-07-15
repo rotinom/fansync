@@ -1,0 +1,8 @@
+
+EMAIL = "SOMEONE@SOMEWHERE.COM"
+PASSWORD = "PASSWORD"
+
+LOGIN_JSON = {
+    "email": EMAIL,
+    "password": PASSWORD
+}

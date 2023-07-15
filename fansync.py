@@ -21,10 +21,36 @@ class FanSync:
         self._websocket = None
         self._ws_recv_thread = Thread(target=self._ws_recv)
 
+        self._status = {}
+
+        # Mapping of event type -> member functions to handle the events
+        self._eventDispatchDict = {
+            'device_change': self._handleDeviceChangeEvent
+        }
+
+
     def _ws_recv(self):
         while True:
-            message = self._websocket.recv()
-            print(message)
+            message = json.loads(self._websocket.recv())
+
+            if "event" in message:
+                key = message["event"]
+                print("Using event key of: %s" % key)
+                # try:
+                self._eventDispatchDict[key](message)
+
+                # except as e:
+                #     print("Failed to handle message: %s" % message)
+
+            else:
+                print(message)
+
+    def _handleDeviceChangeEvent(self, message):
+        print(message)
+        event = DeviceChangeEvent(**message)
+
+        # Extract the encoded status
+        self._status = event.data.changes.status
 
 
     def login(self, email, password):
@@ -69,7 +95,6 @@ class FanSync:
         print(f"Connecting to host: {host}")
         self._websocket = connect(host, ssl_context=ssl_ctx)
 
-        print("Logging in websocket")
         self.ws_login()
 
         print("Starting receive thread")

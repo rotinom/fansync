@@ -45,6 +45,8 @@ class Response(BaseModel):
     response: str
 
 
+
+
 class ListDevicesRequest(Request):
     pass
 
@@ -135,3 +137,19 @@ class GetDeviceResponse(Response):
 
     data: Data
 
+
+# Best guess; only have one event type now
+class Event(BaseModel):
+    event: str
+
+
+# Best guess; This is the only concrete event observed
+class DeviceChangeEvent(Event):
+    class Data(BaseModel):
+        class Changes(BaseModel):
+            status: dict[str, int]
+
+        changes: 'Changes'
+        device: str
+
+    data: 'Data'

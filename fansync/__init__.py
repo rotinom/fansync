@@ -43,7 +43,9 @@ class FanSync:
 
         self._websocket = Websocket(self._token, self._id, self._client)
 
-        self._websocket.connect()
+        asyncio.run(self._websocket.run())
+
+        # self._websocket.connect()
 
         # self._websocket.start()
 

@@ -51,7 +51,7 @@ Websocket messages are split into at least three categories:
 
 #### Request
 It's a request.  You give it an `id` in the request the type of `request` it 
-is, and then any `data` required.  Look at the [models](./models/__init__.py)
+is, and then any `data` required.  Look at the [models](fansync/models/__init__.py)
 for the code that documents this better.
 
 Sample:

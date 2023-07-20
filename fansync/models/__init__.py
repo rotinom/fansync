@@ -1,9 +1,6 @@
 
-from collections.abc import Sequence
 from typing import Optional
-
 from pydantic import BaseModel, Field
-
 from bidict import *
 
 # This is dynamically driven from values that come from

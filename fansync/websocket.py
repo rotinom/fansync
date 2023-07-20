@@ -1,36 +1,43 @@
-from datetime import datetime
-from typing import Optional
 
-import requests
-import ssl
-from websockets.sync.client import connect
 import json
-from models import *
+from fansync.models import *
 from threading import *
+import ssl
+from websockets.sync.client import connect as ws_connect
+import requests
 
 
+class Websocket:
+    API_URL = "wss://fanimation.apps.exosite.io"
 
-class FanSync:
-
-    def __init__(self):
-        self._client = requests
-
-        self._sessionId = None
-        self._token = None
-        self._id = 1
+    def __init__(self, token: str, request_id: int, client: requests):
+        self._token = token
         self._websocket = None
-        self._ws_recv_thread = Thread(target=self._ws_recv)
-
-        self._status = {}
+        self._ws_recv_thread = Thread(target=self._recv)
+        self._id = request_id
+        self._client = client
+        self._devices = []
+        self._keep_running = True
 
         # Mapping of event type -> member functions to handle the events
         self._eventDispatchDict = {
-            'device_change': self._handleDeviceChangeEvent
+            'device_change': self._handle_device_change_event
         }
 
+    def _get_id(self):
+        ret = self._id
+        self._id += 1
+        return ret
 
-    def _ws_recv(self):
-        while True:
+    def _handle_device_change_event(self, message):
+        print(message)
+        event = DeviceChangeEvent(**message)
+
+        # Extract the encoded status
+        self._status = event.data.changes.status
+
+    def _recv(self):
+        while self._keep_running:
             message = json.loads(self._websocket.recv())
 
             if "event" in message:
@@ -45,67 +52,41 @@ class FanSync:
             else:
                 print(message)
 
-    def _handleDeviceChangeEvent(self, message):
-        print(message)
-        event = DeviceChangeEvent(**message)
-
-        # Extract the encoded status
-        self._status = event.data.changes.status
-
-
-    def login(self, email, password):
-
-        options_headers = {
-            "access-control-request-method": "POST",
-            "origin": "http://localhost",
-            "access-control-request-headers": "content-type"
-        }
-
-        o = self._client.options('https://fanimation.apps.exosite.io/api:1/session',
-                                 headers=options_headers)
-        if o.status_code != 200:
-            print("Failed to set login OPTIONS")
-
-
-        r = self._client.post('https://fanimation.apps.exosite.io/api:1/session',
-                              json={"email": email, "password": password})
-
-        if r.status_code != 200:
-            print("Failed to login")
-
-        ret = r.json()
-        self._id = int(ret["id"])
-        self._token = ret["token"]
-
-        print(f"Got token of: {self._token}")
-
-    def _get_id(self):
-        ret = self._id
-        self._id += 1
-        return ret
-
-    def ws_connect(self):
+    def connect(self):
 
         # disable cert verification
         ssl_ctx = ssl.create_default_context()
         ssl_ctx.check_hostname = False
         ssl_ctx.verify_mode = ssl.CERT_NONE
 
-        host = "wss://fanimation.apps.exosite.io:443/api:1/phone"
-        print(f"Connecting to host: {host}")
-        self._websocket = connect(host, ssl_context=ssl_ctx)
+        endpoint = self.API_URL + "/api:1/phone"
 
-        self.ws_login()
+        for i in range(0, 3):
+            try:
+                self._websocket = ws_connect(endpoint, open_timeout=10, ssl_context=ssl_ctx)
+                break
+            except TimeoutError as e:
+                print("Timed out trying to connect to: %s\n%s" % (endpoint, e))
 
+        if self._websocket is None:
+            raise Exception("Could not connect websocket to: %s" % (endpoint))
+
+        self._start_recv_thread()
+
+        self._login()
+        self._provision_token()
+
+    def _start_recv_thread(self):
         print("Starting receive thread")
         self._ws_recv_thread.start()
 
-    def ws_close(self):
+    def close(self):
+        # TODO kill any running threads
+
         self._websocket.close()
 
-    def ws_login(self):
+    def _login(self):
 
-        print("Logging in websocket...")
         data = json.dumps({
             "id": self._get_id(),
             "request": "login",
@@ -113,11 +94,28 @@ class FanSync:
                 "token": self._token
             }
         })
+        print("Logging in websocket...")
         self._websocket.send(data)
-        message = self._websocket.recv()
-        # print(f"Received: {message}")
 
+        #
+        # message: str = None
+        # for i in range(0, 5):
+        #
+        #
+        #
+        #     try:
+        #         print("Waiting for login response...")
+        #         message = self._websocket.recv(timeout=10)
+        #         print(message)
+        #         break
+        #
+        #     except TimeoutError as e:
+        #         print("Timed out waiting for websocket login response")
+        #
+        # if message is None:
+        #     raise TimeoutError("Timed out waiting for websocket login response")
 
+    def _provision_token(self):
         print("Provisioning token..")
         data = json.dumps({
             "id": self._get_id(),
@@ -127,11 +125,10 @@ class FanSync:
             }
         })
         self._websocket.send(data)
-        message = self._websocket.recv()
+        # message = self._websocket.recv()
         # print(f"Received: {message}")
 
-
-    def ws_list_devices(self):
+    def list_devices(self):
 
         # print("Listing devices...")
         req = ListDevicesRequest(
@@ -140,11 +137,13 @@ class FanSync:
         )
 
         self._websocket.send(json.dumps(req.model_dump()))
-        # ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
-        # print(f"Received: {ret}")
-        # return ret
+        ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
+        print(f"Received: {ret}")
 
-    def ws_get_device(self, device: ListDevicesResponse.Device):
+        self._devices = ret.data
+        return ret.data
+
+    def get_device(self, device: ListDevicesResponse.Device):
         # print(f"Querying device '{device.properties.displayName} ({device.device})'")
 
         req = GetDeviceRequest(

@@ -1,13 +1,7 @@
 #!./venv/bin/python
 
-# `pip install httpx`
-# `pip install httpx[http2]`
 import time
-from fansync import FanSync
-
-
-
-import httpx
+from fansync import *
 from SECRETS import *
 
 # client = httpx.Client(http2=True)
@@ -37,9 +31,8 @@ from SECRETS import *
 
 try :
     f = FanSync()
-    f.login(EMAIL, PASSWORD)
-    f.ws_connect()
-    f.ws_list_devices()
+    f.open(EMAIL, PASSWORD)
+
     # listDeviceResponse = f.ws_list_devices()
     # for i in range(100):
     #     time.sleep(0.5)
@@ -48,7 +41,7 @@ try :
 
     time.sleep(100.0)
 finally:
-    f.ws_close()
+    f.close()
 
 
 

@@ -4,9 +4,7 @@ from fansync.models import *
 from threading import *
 import ssl
 from websockets.sync.client import connect as ws_connect
-import websockets
 import requests
-import asyncio
 
 
 class Websocket:
@@ -63,58 +61,20 @@ class Websocket:
 
         endpoint = self.API_URL + "/api:1/phone"
 
-        #
-        # for i in range(0, 3):
-        #     try:
-        #         self._websocket = ws_connect(endpoint, open_timeout=10, ssl_context=ssl_ctx)
-        #         break
-        #     except TimeoutError as e:
-        #         print("Timed out trying to connect to: %s\n%s" % (endpoint, e))
-        #
-        # if self._websocket is None:
-        #     raise Exception("Could not connect websocket to: %s" % (endpoint))
-        #
-        # self._start_recv_thread()
-        #
-        # self._login()
-        # self._provision_token()
+        for i in range(0, 3):
+            try:
+                self._websocket = ws_connect(endpoint, open_timeout=10, ssl_context=ssl_ctx)
+                break
+            except TimeoutError as e:
+                print("Timed out trying to connect to: %s\n%s" % (endpoint, e))
 
-    async def run(self):
+        if self._websocket is None:
+            raise Exception("Could not connect websocket to: %s" % (endpoint))
 
-        # disable cert verification
-        ssl_ctx = ssl.create_default_context()
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
+        self._start_recv_thread()
 
-        uri = self.API_URL + "/api:1/phone"
-        async with websockets.connect(uri, ssl=ssl_ctx) as websocket:
-            payload = json.dumps({
-                "id": self._get_id(),
-                "request": "login",
-                "data": {
-                    "token": self._token
-                }
-            })
-            print("Logging in websocket...")
-            await websocket.send(payload)
-            response = await websocket.recv()
-            print(response)
-        #
-        # for i in range(0, 3):
-        #     try:
-        #         self._websocket = ws_connect(endpoint, open_timeout=10, ssl_context=ssl_ctx)
-        #         break
-        #     except TimeoutError as e:
-        #         print("Timed out trying to connect to: %s\n%s" % (endpoint, e))
-        #
-        # if self._websocket is None:
-        #     raise Exception("Could not connect websocket to: %s" % (endpoint))
-        #
-        # self._start_recv_thread()
-        #
-        # self._login()
-        # self._provision_token()
-
+        self._login()
+        self._provision_token()
 
     def _start_recv_thread(self):
         print("Starting receive thread")

@@ -92,14 +92,14 @@ GET /api:1/phone
 -> {"id":6,"request":"get_me"}
 
 <- {"status":"ok","response":"provision_token","data":{"token":"<token>","expires_in":1691521373},"id":2}
-<- {"status":"ok","response":"lst_device","data":[{"owner":"rotinom@gmail.com","device":"2C05472869A8B09109630400","properties":{"displayName":"Porch","deviceHasBeenConfigured":true,<- "ignoreUpdateVersion":"1.7.1"},"role":"owner"}],"id":3}
+<- {"status":"ok","response":"lst_device","data":[{"owner":"xxxxx@xxxxx.xxx","device":"2C05472869A8B09109630400","properties":{"displayName":"Porch","deviceHasBeenConfigured":true,<- "ignoreUpdateVersion":"1.7.1"},"role":"owner"}],"id":3}
 
 -> {"id":7,"request":"get","device":"2C05472869A8B09109630400","data":null}
 
 <- {"status":"ok","response":"lst_group","data":[],"id":4}
 <- {"status":"ok","response":"get_user_data","data":{"groupDisplayOrder":[],"loginData":{"email":{"updateDate":"2023-07-09T19:02:52Z","createDate":"2023-04-15T19:07:08Z"}}},"id":5}
-<- {"status":"ok","response":"get_me","data":{"ifttt_link":{"status":1},"id":27106,"status":1,"email":"rotinom@gmail.com","token":"<token>","alexa_link":{"status":0},"googlehome_link":{"status":0},"name":"rotinom@gmail.com"},"id":6}
-<- {"status":"ok","response":"get","data":{"users":[{"role":"owner","email":"rotinom@gmail.com"}],"status":{"H01":0,"H05":0,"H0D":0,"H06":0,"H0E":0,"H0B":0,"H00":0,"H0C":82,"H02":86},"fields":["H00","H01","H02","H0E","H06","H0B","H0D","H0C"],"profile":{"cert":{"validity":{"not_after":"11/10/31","not_before":"11/10/06"},"fingerprint":{"sha1":"1dfac17adf3867c9a28acb329de8d16d8b412d8b"}},"module":{"firmware_version":"1.7.1","local_ip":"192.168.1.75","ssid":"maelin","mac_address":"2C05472869A8"},"esh":{"brand":"Fanimation","esh_version":"0.0.4","class":0,"device_id":"F","model":"OdynCustom-FDR1L2"}},"calendar":[],"device":"2C05472869A8B09109630400","connected":1,"device_state":"idle"},"id":7}
+<- {"status":"ok","response":"get_me","data":{"ifttt_link":{"status":1},"id":27106,"status":1,"email":"xxxxx@xxxxx.xxx","token":"<token>","alexa_link":{"status":0},"googlehome_link":{"status":0},"name":"xxxxx@xxxxx.xxx"},"id":6}
+<- {"status":"ok","response":"get","data":{"users":[{"role":"owner","email":"xxxxx@xxxxx.xxx"}],"status":{"H01":0,"H05":0,"H0D":0,"H06":0,"H0E":0,"H0B":0,"H00":0,"H0C":82,"H02":86},"fields":["H00","H01","H02","H0E","H06","H0B","H0D","H0C"],"profile":{"cert":{"validity":{"not_after":"11/10/31","not_before":"11/10/06"},"fingerprint":{"sha1":"1dfac17adf3867c9a28acb329de8d16d8b412d8b"}},"module":{"firmware_version":"1.7.1","local_ip":"192.168.1.75","ssid":"maelin","mac_address":"2C05472869A8"},"esh":{"brand":"Fanimation","esh_version":"0.0.4","class":0,"device_id":"F","model":"OdynCustom-FDR1L2"}},"calendar":[],"device":"2C05472869A8B09109630400","connected":1,"device_state":"idle"},"id":7}
 -> {"id":8,"request":"set","device":"2C05472869A8B09109630400","data":{"H00":1}}
 <- {"status":"ok","response":"set","id":8}
 

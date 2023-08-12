@@ -51,7 +51,7 @@ Websocket messages are split into at least three categories:
 
 #### Request
 It's a request.  You give it an `id` in the request the type of `request` it 
-is, and then any `data` required.  Look at the [models](./models/__init__.py)
+is, and then any `data` required.  Look at the [models](fansync/models/__init__.py)
 for the code that documents this better.
 
 Sample:
@@ -107,6 +107,10 @@ order to figure out what JSON blob belongs with your device.  Like I said,
 pretty slick.
 
 Decoding this in a basic manner will open up control of all FanSync hardware.
+
+<u>Edit 1</u> - *Good grief, it's Javascript based*
+
+<u>Edit 2</u> - *There is no god.*
 
 [Sample Output](./docs/fw-list.md)
 

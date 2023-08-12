@@ -1,9 +1,6 @@
 
-from collections.abc import Sequence
 from typing import Optional
-
 from pydantic import BaseModel, Field
-
 from bidict import *
 
 # This is dynamically driven from values that come from
@@ -32,12 +29,15 @@ fan_direction_ = bidict({
 })
 
 
+class Credentials(BaseModel):
+    id: int
+    token: str
 
 
 class Request(BaseModel):
     id: int
     request: str
-    data: Optional[dict[str, str]] = None
+
 
 class Response(BaseModel):
     id: int
@@ -45,12 +45,23 @@ class Response(BaseModel):
     response: str
 
 
+class LoginRequest(Request):
+    class Data(BaseModel):
+        token: str
+
+    request: str = "login"
+    data: Data
+
+
+class LoginResponse(Response):
+    pass
 
 
 class ListDevicesRequest(Request):
     pass
 
-class  ListDevicesResponse(Response):
+
+class ListDevicesResponse(Response):
     class Properties(BaseModel):
         displayName: str
         deviceHasBeenConfigured: bool
@@ -67,8 +78,6 @@ class  ListDevicesResponse(Response):
 
 class GetDeviceRequest(Request):
     device: str
-
-
 
 
 class User(BaseModel):
@@ -92,8 +101,6 @@ class GetDeviceResponse(Response):
         model: str
 
     class Data(BaseModel):
-
-
 
         class Profile(BaseModel):
             module: 'GetDeviceResponse.Module'  # forward reference

@@ -1,0 +1,5 @@
+
+
+class AuthFailed (BaseException):
+    pass
+

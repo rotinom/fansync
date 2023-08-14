@@ -1,6 +1,6 @@
 
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from bidict import *
 
 # This is dynamically driven from values that come from
@@ -30,13 +30,13 @@ fan_direction_ = bidict({
 
 
 class HttpCredentials(BaseModel):
-    email: str
-    password: str
+    email: SecretStr
+    password: SecretStr
 
 
 class Credentials(BaseModel):
     id: int
-    token: str
+    token: SecretStr
 
 
 class Request(BaseModel):
@@ -59,14 +59,17 @@ class ProvisionTokenRequest(Request):
 
 class LoginRequest(Request):
     class Data(BaseModel):
-        token: str
+        token: SecretStr
 
     request: str = "login"
     data: Data
 
 
-class LoginResponse(Response):
-    pass
+# This is weird. It's a special "Response" not related to the "Response" hierarchy
+class LoginResponse(BaseModel):
+    id: int
+    token: SecretStr
+
 
 
 class ListDevicesRequest(Request):

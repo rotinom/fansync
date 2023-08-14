@@ -67,15 +67,21 @@ try:
     h = HttpApi()
 
     h.options_session()
-    credentials: Credentials = h.post_session(EMAIL, PASSWORD)
-    h.get_session(credentials)
+    # credentials: Credentials = h.post_session(EMAIL, PASSWORD)
+    # h.get_session(credentials)
+
+    credentials: Credentials = Credentials(id=10, token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjI3MTA2LCJpc3MiOiJodHRwOi8vc3BoaW54LXVzbTo0MDcwL2FwaS92MS91c2VyL2xvZ2luIiwiaWF0IjoxNjkxOTYwMzgyLCJleHAiOjE2OTQ1NTIzODIsIm5iZiI6MTY5MTk2MDM4MiwianRpIjoiejVvNXhzU2NkODFMOFRFNSJ9.MOb2wAr4AVKUUEIe3kgdJpZE_rqEljOCCznHoEigBu8")
 
     if not credentials:
         raise AuthFailed()
 
     w = fansync.Websocket(credentials.token)
     w.connect()
-    w.login()
+
+    try:
+        w.login()
+    except:
+        w.close()
 
 
 

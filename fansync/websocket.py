@@ -54,9 +54,9 @@ class WebsocketRequest:
 class Websocket:
     API_URL = "wss://fanimation.apps.exosite.io/api:1/phone"
 
-    def __init__(self, auth_token: str):
+    def __init__(self, auth_token: SecretStr):
         self._id: int = 1  # creds.id
-        self._token: str = auth_token
+        self._token: SecretStr = auth_token
         self._websocket: Optional[ClientConnection] = None
 
 
@@ -73,10 +73,10 @@ class Websocket:
         #     raise e
 
     # Method to get ID's for the communication protocol
-    def _get_id(self):
+    def _get_id(self) -> int:
         ret = self._id
         self._id += 1
-        return str(ret)
+        return ret
 
     def _send(self, request: Request):
         if not self._websocket:
@@ -88,7 +88,7 @@ class Websocket:
 
     # TODO: When this is working, try making this generic
     # def _recv(self, return_type: T, timeout: float = 5) -> T:
-    def _recv(self,  timeout: float = 5.0) -> Data:
+    def _recv(self,  timeout: float = 50) -> Data:
 
         if not self._websocket:
             raise WebsocketNotConnectedException()
@@ -106,29 +106,60 @@ class Websocket:
             raise WebsocketAlreadyConnectedException()
 
         # disable cert verification
-        ssl_ctx = ssl.create_default_context()
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
 
         print(f"ws connect: {Websocket.API_URL}...", end="", flush=True)
         try:
+            # Don't appear to be needed.  Trying to figure out why we can't get a login response
             user_agent = "Mozilla/5.0 (Linux; Android 9; ONEPLUS A3003 Build/PKQ1.181203.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/115.0.5790.166 Mobile Safari/537.36"
             headers = {
                 "Pragma": "no-cache",
                 "Cache-Control": "no-cache",
                 "Origin": "http://localhost",
                 "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br"
             }
             self._websocket = \
                 ws_connect(Websocket.API_URL,
                            user_agent_header=user_agent,
                            additional_headers=headers,
                            open_timeout=10,
-                           ssl_context=ssl_ctx)
+                           ssl_context=context,
+                           )
 
         except TimeoutError as e:
             print("timed out", flush=True)
             raise e
+
+        print("connected")
+
+    def login(self):
+        payload = LoginRequest(id=self._get_id(), data=LoginRequest.Data(token=self._token.get_secret_value()))
+
+        print(f"PAYLOAD {payload}")
+
+        print("Logging in websocket...", end="", flush=True)
+
+        self._send(payload)
+        self._websocket.ping().wait()
+        try:
+            resp = self._recv()
+            print(resp)
+            response = LoginResponse(**json.loads(resp))
+        except TimeoutError as e:
+            print("timed out", flush=True)
+            raise WebsocketAuthException()
+
+        if response.status != "ok":
+            print("failed", flush=True)
+            print(f"Response: {response}")
+            raise Exception("Failed to login websocket")
+
+        print("done", flush=True)
+
+
 
     def close(self, code: int = 1000, msg: str = "goodbye"):
         print(f"Closing websocket '{msg}({code})'")
@@ -170,24 +201,7 @@ class Websocket:
 
 
 
-    def login(self):
-        payload = LoginRequest(id=self._get_id(), data=LoginRequest.Data(token=self._token))
 
-        print("Logging in websocket...", end="", flush=True)
-
-        self._send(payload)
-        try:
-            response = LoginResponse(**json.loads(self._recv(timeout=5)))
-        except TimeoutError as e:
-            print("timed out", flush=True)
-            raise WebsocketAuthException()
-
-        if response.status != "ok":
-            print("failed", flush=True)
-            print(f"Response: {response}")
-            raise Exception("Failed to login websocket")
-
-        print("done", flush=True)
 
     # def run(self):
     #     # Perform initial enumeration of devices

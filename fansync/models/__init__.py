@@ -1,6 +1,6 @@
 
 from typing import Optional
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, field_serializer
 from bidict import *
 
 # This is dynamically driven from values that come from
@@ -40,14 +40,14 @@ class Credentials(BaseModel):
 
 
 class Request(BaseModel):
-    id: str
+    id: int
     request: str
 
 
 class Response(BaseModel):
     id: int
     status: str
-    response: str
+    # response: str
 
 
 class ProvisionTokenRequest(Request):
@@ -60,6 +60,10 @@ class ProvisionTokenRequest(Request):
 class LoginRequest(Request):
     class Data(BaseModel):
         token: SecretStr
+
+        @field_serializer('token', when_used='json')
+        def dump_secret(self, v):
+            return v.get_secret_value()
 
     request: str = "login"
     data: Data

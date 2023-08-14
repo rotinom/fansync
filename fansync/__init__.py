@@ -2,7 +2,7 @@
 import os
 from json import JSONDecodeError
 
-import requests
+import httpx
 
 from fansync.Exceptions import AuthFailed
 from fansync.device_factory import DeviceFactory
@@ -17,7 +17,7 @@ class HttpApi:
     def __init__(self):
         self._id = 1
         self._status = {}
-        self._session = requests.Session()
+        self._session = httpx.Client()
 
         # TODO Move this.  Shouldn't be here.
         # self._device_factory: DeviceFactory = HttpApi._get_device_factory()
@@ -45,14 +45,19 @@ class HttpApi:
     def get_session(self, params: Credentials):
         headers = HttpApi._get_headers(params.token)
 
-        result = self._session.get(HttpApi.API_URL + '/api:1/session', headers=headers)
+        url = f"{self.API_URL}/api:1/session"
+        print(f"GET {url} ", end="", flush=True)
+        result = self._session.get(url, headers=headers)
 
         if result.status_code != 200:
             raise AuthFailed(f"Token validation return {result.json()}")
 
-        print(f"Token validation return {result}")
+        print(f"{result.status_code}")
 
-        return "valid" == result.json()["status"]
+        response = Response(**json.loads(result.text))
+        print(f"{response}")
+
+        return "valid" == response.status
 
     def post_session(self, email: str, password: str) -> Optional[Credentials]:
 

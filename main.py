@@ -73,9 +73,9 @@ try:
     if not credentials:
         raise AuthFailed()
 
-    # w = fansync.Websocket(credentials.token)
-    # w.connect()
-    # w.login()
+    w = fansync.Websocket(credentials.token)
+    w.connect()
+    w.login()
 
 
 

@@ -109,6 +109,7 @@ class Websocket:
         context = ssl.create_default_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
+        # context.options |= ssl.OP_NO_SSLv2
 
         print(f"ws connect: {Websocket.API_URL}...", end="", flush=True)
         try:
@@ -147,7 +148,7 @@ class Websocket:
         try:
             resp = self._recv()
             print(resp)
-            response = LoginResponse(**json.loads(resp))
+            response = WsLoginResponse(**json.loads(resp))
         except TimeoutError as e:
             print("timed out", flush=True)
             raise WebsocketAuthException()
@@ -343,7 +344,7 @@ class Websocket:
         )
 
         self._send(request)
-        ret = ListDevicesResponse(**json.loads(self._websocket.recv()))
+        ret = ListDevicesResponse(**json.loads(self._recv()))
         print(ret)
         print(f"Received {len(ret.data)} devices")
 
@@ -369,8 +370,8 @@ class Websocket:
             device=device.device)
 
         self._send(request)
-        ret = GetDeviceResponse(**json.loads(self._websocket.recv()))
-        print(ret)
+        ret = GetDeviceResponse(**json.loads(self._recv()))
+        # print(ret)
 
         return ret
 

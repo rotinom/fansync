@@ -66,7 +66,7 @@ try:
 
     h = HttpApi()
 
-    h.options_session()
+    # h.options_session()
     # credentials: Credentials = h.post_session(EMAIL, PASSWORD)
     # h.get_session(credentials)
 
@@ -75,14 +75,18 @@ try:
     if not credentials:
         raise AuthFailed()
 
-    w = fansync.Websocket(credentials.token)
-    w.connect()
+    ws = fansync.Websocket(credentials.token)
+    ws.connect()
 
     try:
-        w.login()
-    except:
-        w.close()
+        ws.login()
+    except Exception as e:
+        print(e)
+        ws.close()
 
+    devices: ListDevicesResponse = ws.list_devices()
+    for device in devices.data:
+        d: GetDeviceResponse = ws.get_device(device)
 
 
     # listDeviceResponse = f.ws_list_devices()

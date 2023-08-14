@@ -1,7 +1,6 @@
 *.pcapng
 SECRETS.*
 .fansync-credentials
-*.json
 *.yaml
 
 

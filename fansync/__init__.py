@@ -4,7 +4,7 @@ from json import JSONDecodeError
 
 import httpx
 
-from fansync.Exceptions import AuthFailed
+from fansync.exceptions import AuthFailed
 from fansync.device_factory import DeviceFactory
 from fansync.websocket import *
 

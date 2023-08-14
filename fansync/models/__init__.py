@@ -47,7 +47,10 @@ class Request(BaseModel):
 class Response(BaseModel):
     id: int
     status: str
-    # response: str
+
+
+class WsResponse(Response):
+    response: str
 
 
 class ProvisionTokenRequest(Request):
@@ -74,6 +77,9 @@ class LoginResponse(BaseModel):
     id: int
     token: SecretStr
 
+
+class WsLoginResponse(WsResponse):
+    pass
 
 
 class ListDevicesRequest(Request):

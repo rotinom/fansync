@@ -13,6 +13,9 @@ from fansync.facades import *
 import models
 
 
+class WebsocketAuthException(Exception):
+    pass
+
 # Not really a facade.  Trying this whole thing out right now
 class WebsocketDevice:
 
@@ -35,19 +38,37 @@ class Websocket:
     API_URL = "wss://fanimation.apps.exosite.io"
 
     def __init__(self, creds: Credentials, device_factory: DeviceFactory):
-        self._id: int = creds.id
+        self._id: int = 1  # creds.id
         self._token: str = creds.token
         self._device_factory: DeviceFactory = device_factory
         self._devices = []
         self._websocket: ClientConnection = self._connect(Websocket.API_URL)
 
         # Perform login
-        self._login(self._token)
+        try:
+            self._login(self._token)
+            self._provision_token()
+        except WebsocketAuthException as e:
+            self.close(4001, "Websocket open failed.")
+            raise e
+
+    def close(self, code: int = 1000, msg: str = "goodbye"):
+        print(f"Closing websocket '{msg}({code})'")
+        self._websocket.close(code, msg)
 
     def _get_id(self):
         ret = self._id
         self._id += 1
-        return ret
+        return str(ret)
+
+    def _provision_token(self):
+        payload = ProvisionTokenRequest(id=self._get_id(), data=ProvisionTokenRequest.Data())
+        self._websocket.send(payload.model_dump_json())
+        try:
+            response = LoginResponse(**json.loads(self._websocket.recv(timeout=5)))
+        except TimeoutError as e:
+            print("timed out", flush=True)
+            raise WebsocketAuthException()
 
     def _handle_device_change_event(self, message):
         print(message)
@@ -82,11 +103,21 @@ class Websocket:
 
         endpoint = url + "/api:1/phone"
 
-        print(f"Attempting to connect to: {url}...", end="")
+        print(f"Attempting to connect to: {endpoint}...", end="", flush=True)
         websocket = None
         for i in range(0, 3):
             try:
-                websocket = ws_connect(endpoint, open_timeout=10, ssl_context=ssl_ctx)
+                user_agent = "Mozilla/5.0 (Linux; Android 9; ONEPLUS A3003 Build/PKQ1.181203.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/115.0.5790.166 Mobile Safari/537.36"
+                headers = {
+                    "Pragma": "no-cache",
+                    "Cache-Control": "no-cache",
+                    "Origin": "http://localhost",
+                    "Accept-Language": "en-US,en;q=0.9",
+                }
+                websocket = ws_connect(endpoint,
+                                       user_agent_header=user_agent,
+                                       additional_headers=headers,
+                                       open_timeout=10, ssl_context=ssl_ctx)
                 break
             except TimeoutError as e:
                 print("\n\nTimed out trying to connect to: %s\n%s" % (endpoint, e))
@@ -101,15 +132,23 @@ class Websocket:
         # print(f"Logging in with token {token}")
         data = LoginRequest.Data(token=token)
         payload = LoginRequest(id=self._get_id(), data=data)
+        # payload = LoginRequest(id=self._get_id(), data=data)
+        print(f"\t{payload.model_dump_json()}")
 
-        print("Logging in websocket...", end="")
+        print("Logging in websocket...", end="", flush=True)
+
         self._websocket.send(payload.model_dump_json())
-        response = LoginResponse(**json.loads(self._websocket.recv()))
+        try:
+            response = LoginResponse(**json.loads(self._websocket.recv(timeout=5)))
+        except TimeoutError as e:
+            print("timed out", flush=True)
+            raise WebsocketAuthException()
 
         if response.status != "ok":
+            print("failed", flush=True)
             raise Exception("Failed to login websocket")
 
-        print("done")
+        print("done", flush=True)
 
     def run(self):
         # Perform initial enumeration of devices

@@ -29,13 +29,18 @@ fan_direction_ = bidict({
 })
 
 
+class HttpCredentials(BaseModel):
+    email: str
+    password: str
+
+
 class Credentials(BaseModel):
     id: int
     token: str
 
 
 class Request(BaseModel):
-    id: int
+    id: str
     request: str
 
 
@@ -43,6 +48,13 @@ class Response(BaseModel):
     id: int
     status: str
     response: str
+
+
+class ProvisionTokenRequest(Request):
+    class Data(BaseModel):
+        expires_in: int = 2592000  # 30 days in seconds(?)
+
+    request: str = "provision_token"
 
 
 class LoginRequest(Request):

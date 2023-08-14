@@ -32,6 +32,7 @@ from SECRETS import *
 try :
     f = FanSync()
     f.open(EMAIL, PASSWORD)
+    f.close()
 
 
 

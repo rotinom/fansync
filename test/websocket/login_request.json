@@ -1,1 +1,7 @@
-{"id":1,"request":"login","data":{"token":"some_token"}}
+{
+  "id": 1,
+  "request": "login",
+  "data": {
+    "token": "some_token"
+  }
+}

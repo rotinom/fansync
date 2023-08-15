@@ -20,6 +20,11 @@ on-off control of the features of a fan-light combo.  Anything else comes
 after that.*
 
 
+## Install
+* Requires python 3 installed. Follow instructions to make that happen from 
+  python.org
+  * `pip3 install websocket-client`
+
 
 ## Protocol
 As it stands, the protocol is split into https REST API's as well as secure 

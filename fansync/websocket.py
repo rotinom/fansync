@@ -1,54 +1,14 @@
 
 import json
-from typing import TypeVar
+import ssl
 
-from websockets.typing import Data
+from websocket import WebSocketTimeoutException
 
 from fansync import DeviceFactory
-from fansync.models import *
-from threading import *
-import ssl
-from websockets.sync.client import connect as ws_connect, ClientConnection
-import websockets
-import requests
-import asyncio
+from fansync.exceptions import WebsocketNotConnectedException, WebsocketAlreadyConnectedException, \
+    WebsocketAuthException, TimedOutException
 from fansync.facades import *
-import models
-
-T = TypeVar('T')                  # Declare type variable "T"
-
-
-# TODO Use asyncio for websockets
-
-
-class WebsocketAuthException(Exception):
-    pass
-
-
-class WebsocketNotConnectedException(Exception):
-    pass
-
-
-class WebsocketAlreadyConnectedException(Exception):
-    pass
-
-
-# Not really a facade.  Trying this whole thing out right now
-class WebsocketDevice:
-
-    def __init__(self, device_factory: DeviceFactory, websocket: ClientConnection, device: ListDevicesResponse.Device):
-        self._ws = websocket
-        self._df = device_factory
-        self._listed_device: ListDevicesResponse.Device = device
-        self._device_state: Optional[GetDeviceResponse] = None
-
-    # Update with data from set_device
-    def set_device_state(self, device_state: GetDeviceResponse):
-        self._device = self._df.getDevice(device_state)
-
-class WebsocketRequest:
-    def __init__(self, websocket, headers, request: Request):
-        pass
+import websocket
 
 
 class Websocket:
@@ -57,112 +17,61 @@ class Websocket:
     def __init__(self, auth_token: SecretStr):
         self._id: int = 1  # creds.id
         self._token: SecretStr = auth_token
-        self._websocket: Optional[ClientConnection] = None
+        self._websocket: Optional[websocket.WebSocket] = None
 
-
-        # self._device_factory: DeviceFactory = device_factory
-        # self._devices = []
-        # self._websocket: ClientConnection = self._connect(Websocket.API_URL)
-        #
-        # # Perform login
-        # try:
-        #     self._login(self._token)
-        #     self._provision_token()
-        # except WebsocketAuthException as e:
-        #     self.close(4001, "Websocket open failed.")
-        #     raise e
-
-    # Method to get ID's for the communication protocol
     def _get_id(self) -> int:
+        """
+        Method to get ID's for the communication protocol
+        :return: ID for message
+        """
         ret = self._id
         self._id += 1
         return ret
 
     def _send(self, request: Request):
-        if not self._websocket:
-            raise WebsocketNotConnectedException()
+        self._websocket.send(request.model_dump_json())
 
-        data = request.model_dump_json()
-        print(f"ws send {data}")
-        self._websocket.send(data)
-
-    # TODO: When this is working, try making this generic
-    # def _recv(self, return_type: T, timeout: float = 5) -> T:
-    def _recv(self,  timeout: float = 50) -> Data:
-
-        if not self._websocket:
-            raise WebsocketNotConnectedException()
-
-        print(f"ws recv...", end="", flush=True)
-
+    def _recv(self) -> str:
         try:
-            return self._websocket.recv(timeout)
-        except TimeoutError as e:
+            return self._websocket.recv()
+        except WebSocketTimeoutException as e:
             print("timed out", flush=True)
-            raise e
+            raise TimedOutException(e)
 
     def connect(self):
         if self._websocket:
             raise WebsocketAlreadyConnectedException()
 
-        # disable cert verification
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        # context.options |= ssl.OP_NO_SSLv2
-
         print(f"ws connect: {Websocket.API_URL}...", end="", flush=True)
-        try:
-            # Don't appear to be needed.  Trying to figure out why we can't get a login response
-            user_agent = "Mozilla/5.0 (Linux; Android 9; ONEPLUS A3003 Build/PKQ1.181203.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/115.0.5790.166 Mobile Safari/537.36"
-            headers = {
-                "Pragma": "no-cache",
-                "Cache-Control": "no-cache",
-                "Origin": "http://localhost",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br"
-            }
-            self._websocket = \
-                ws_connect(Websocket.API_URL,
-                           user_agent_header=user_agent,
-                           additional_headers=headers,
-                           open_timeout=10,
-                           ssl_context=context,
-                           )
 
-        except TimeoutError as e:
-            print("timed out", flush=True)
-            raise e
+        # websocket.enableTrace(True)
+        self._websocket = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
+        self._websocket.timeout = 10
+        self._websocket.connect(Websocket.API_URL)
 
         print("connected")
 
     def login(self):
         payload = LoginRequest(id=self._get_id(), data=LoginRequest.Data(token=self._token.get_secret_value()))
-
-        print(f"PAYLOAD {payload}")
-
         print("Logging in websocket...", end="", flush=True)
-
         self._send(payload)
-        self._websocket.ping().wait()
+
         try:
             resp = self._recv()
             print(resp)
             response = WsLoginResponse(**json.loads(resp))
-        except TimeoutError as e:
+        except WebSocketTimeoutException as e:
             print("timed out", flush=True)
-            raise WebsocketAuthException()
+            raise WebsocketAuthException(e)
 
         if response.status != "ok":
             print("failed", flush=True)
             print(f"Response: {response}")
-            raise Exception("Failed to login websocket")
+            raise WebsocketAuthException("Failed to login websocket")
 
         print("done", flush=True)
 
-
-
-    def close(self, code: int = 1000, msg: str = "goodbye"):
+    def close(self, code: int = 1000, msg: bytes = b"goodbye"):
         print(f"Closing websocket '{msg}({code})'")
         self._websocket.close(code, msg)
         self._websocket = None
@@ -359,14 +268,20 @@ class Websocket:
         # for device in ret.data:
         #     d : Device = self.get_device(device)
 
+    def set_device(self, device_id: str, data: dict[str, str]):
+        request = \
+            SetRequest(
+                id=self._get_id(),
+                device=device_id,
+                data=data)
 
+        self._send(request)
 
     def get_device(self, device: ListDevicesResponse.Device) -> GetDeviceResponse:
         # print(f"Querying device '{device.properties.displayName} ({device.device})'")
 
         request = GetDeviceRequest(
             id=self._get_id(),
-            request="get",
             device=device.device)
 
         self._send(request)

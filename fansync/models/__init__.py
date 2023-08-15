@@ -44,6 +44,12 @@ class Request(BaseModel):
     request: str
 
 
+class SetRequest(Request):
+    request: str = "set"
+    device: str
+    data: dict[str, str]
+
+
 class Response(BaseModel):
     id: int
     status: str
@@ -102,6 +108,7 @@ class ListDevicesResponse(Response):
 
 
 class GetDeviceRequest(Request):
+    request:str = "get"
     device: str
 
 

@@ -1,0 +1,62 @@
+{
+  "status": "ok",
+  "response": "get",
+  "data": {
+    "users": [
+      {
+        "role": "owner",
+        "email": "rotinom@gmail.com"
+      }
+    ],
+    "status": {
+      "H01": 0,
+      "H05": 0,
+      "H0D": 0,
+      "H06": 0,
+      "H0E": 0,
+      "H0B": 0,
+      "H00": 0,
+      "H0C": 96,
+      "H02": 86
+    },
+    "fields": [
+      "H00",
+      "H01",
+      "H02",
+      "H0E",
+      "H06",
+      "H0B",
+      "H0D",
+      "H0C"
+    ],
+    "profile": {
+      "cert": {
+        "validity": {
+          "not_after": "11/10/31",
+          "not_before": "11/10/06"
+        },
+        "fingerprint": {
+          "sha1": "1dfac17adf3867c9a28acb329de8d16d8b412d8b"
+        }
+      },
+      "module": {
+        "firmware_version": "1.7.1",
+        "local_ip": "192.168.1.75",
+        "ssid": "maelin",
+        "mac_address": "2C05472869A8"
+      },
+      "esh": {
+        "brand": "Fanimation",
+        "esh_version": "0.0.4",
+        "class": 0,
+        "device_id": "F",
+        "model": "OdynCustom-FDR1L2"
+      }
+    },
+    "calendar": [],
+    "device": "2C05472869A8B09109630400",
+    "connected": 1,
+    "device_state": "idle"
+  },
+  "id": 3
+}

@@ -5,7 +5,7 @@ import ssl
 from websocket import WebSocketTimeoutException
 
 from fansync import DeviceFactory
-from fansync.exceptions import WebsocketNotConnectedException, WebsocketAlreadyConnectedException, \
+from fansync.exceptions import WebsocketAlreadyConnectedException, \
     WebsocketAuthException, TimedOutException
 from fansync.facades import *
 import websocket

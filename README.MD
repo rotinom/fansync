@@ -128,7 +128,7 @@ Request Body:
 Response:
 ```json5
 {
-    "id": "12345",   // Some numeric value
+    "id": "12345",   // Numeric USER ID
     "token": "[BASE-64 JWT TOKEN]"
 }
 ```
@@ -142,7 +142,7 @@ should be referenced from the wiki, but I'll annotate interesting things
 **Payload**
 ```json5
 {
-  "sub": 12345, // The same as what comes back from the above response 
+  "sub": 12345, // Numeric USER ID
   "iss":"http://sphinx-usm:4070/api/v1/user/login", // Some internal URL?
   "iat":1691960382, // unix epoch time in seconds
   "exp":1694552382, // unix epoch time in seconds

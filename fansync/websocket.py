@@ -2,13 +2,16 @@
 import json
 import ssl
 
+from pydantic import SecretStr
 from websocket import WebSocketTimeoutException
 
-from fansync import DeviceFactory
 from fansync.exceptions import WebsocketAlreadyConnectedException, \
     WebsocketAuthException, TimedOutException
 from fansync.facades import *
 import websocket
+
+from fansync.models import Request, ProvisionTokenRequest, ProvisionTokenResponse, ListDevicesResponse, \
+    ListDevicesRequest, GetDeviceRequest, SetRequest, GetDeviceResponse, LoginRequest, WsLoginResponse
 
 
 class Websocket:
@@ -44,7 +47,7 @@ class Websocket:
 
         print(f"ws connect: {Websocket.API_URL}...", end="", flush=True)
 
-        # websocket.enableTrace(True)
+        websocket.enableTrace(True)
         self._websocket = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
         self._websocket.timeout = 10
         self._websocket.connect(Websocket.API_URL)
@@ -81,7 +84,7 @@ class Websocket:
         payload = ProvisionTokenRequest(id=self._get_id(), data=ProvisionTokenRequest.Data())
         self._send(payload)
         try:
-            response: LoginResponse = LoginResponse(**json.loads(self._recv()))
+            response: ProvisionTokenResponse = ProvisionTokenResponse(**json.loads(self._recv()))
             # TODO do something w/ response
         except TimeoutError as e:
             raise WebsocketAuthException(e)

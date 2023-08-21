@@ -1,32 +1,23 @@
 
 from typing import Optional
 from pydantic import BaseModel, Field, SecretStr, field_serializer
-from bidict import *
 
-# This is dynamically driven from values that come from
-# GET /api:1/info-model
-field_mapping_ = bidict({
-    'FAN_POWER': 'H00',
-    'FAN_MODE': 'H01',
-    'FAN_PERCENT': 'H02',
-    'FAN_DIRECTION': 'H06',
-    'LIGHT_POWER': 'H0B',
-    'LIGHT_PERCENT': 'H0C',
-    'HOME_AWAY': 'H0D',
-    'UNKNOWN1': 'H05',  # "TIMER" OR "FAN_LEARN_LOAD"
-    'ERROR_CODE': 'H0E'  # OBSERVED VALUE '262'
-})
+from fansync.devices.light import field_mapping_
 
 
-fan_mode_ = bidict({
-    0: "Normal",
-    1: "Fresh Air"
-})
+class InfoModel(BaseModel):
+    class InformationModel(BaseModel):
+        scheduleLayout: dict[str, list[str]]
+        familyMembers: list[str]
+        deviceId: str
+        familyName: str
+        components: dict[str, dict]
 
-fan_direction_ = bidict({
-    0: "Forward",
-    1: "Reverse"
-})
+    timestamp: int
+    size: int
+    lastModified: int
+    name: str
+    informationModel: InformationModel
 
 
 class HttpCredentials(BaseModel):
@@ -64,6 +55,15 @@ class ProvisionTokenRequest(Request):
         expires_in: int = 2592000  # 30 days in seconds(?)
 
     request: str = "provision_token"
+    data: Data
+
+
+class ProvisionTokenResponse(WsResponse):
+    class Data(BaseModel):
+        token: str
+        expires_in: int
+
+    data: Data
 
 
 class LoginRequest(Request):
@@ -108,7 +108,7 @@ class ListDevicesResponse(Response):
 
 
 class GetDeviceRequest(Request):
-    request:str = "get"
+    request: str = "get"
     device: str
 
 
@@ -150,26 +150,27 @@ class GetDeviceResponse(Response):
         connected: int
         device_state: str
 
-        def get_fan_percent(self):
-            return self.status[field_mapping_['FAN_PERCENT']]
-
-        def get_fan_power(self):
-            return self.status[field_mapping_['FAN_POWER']] == 1
-
-        def get_fan_mode(self):
-            return fan_mode_[self.status[field_mapping_['FAN_MODE']]]
-
-        def get_fan_direction(self):
-            return fan_direction_[self.status[field_mapping_['FAN_DIRECTION']]]
-
-        def get_light_percent(self):
-            return self.status[field_mapping_['LIGHT_PERCENT']]
-
-        def get_light_power(self):
-            return self.status[field_mapping_['LIGHT_POWER']]
-
-        def get_home_away(self):
-            return self.status[field_mapping_['HOME_AWAY']] == 1
+        # Not doing it this way right now.
+        # def get_fan_percent(self):
+        #     return self.status[field_mapping_['FAN_PERCENT']]
+        #
+        # def get_fan_power(self):
+        #     return self.status[field_mapping_['FAN_POWER']] == 1
+        #
+        # def get_fan_mode(self):
+        #     return fan_mode_[self.status[field_mapping_['FAN_MODE']]]
+        #
+        # def get_fan_direction(self):
+        #     return fan_direction_[self.status[field_mapping_['FAN_DIRECTION']]]
+        #
+        # def get_light_percent(self):
+        #     return self.status[field_mapping_['LIGHT_PERCENT']]
+        #
+        # def get_light_power(self):
+        #     return self.status[field_mapping_['LIGHT_POWER']]
+        #
+        # def get_home_away(self):
+        #     return self.status[field_mapping_['HOME_AWAY']] == 1
 
         # class Config:
         #     exclude = ['calendar']

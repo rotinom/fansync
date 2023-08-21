@@ -6,6 +6,7 @@ import fansync
 from fansync import websocket
 from fansync import *
 from SECRETS import *
+from fansync.devices.device_factory import DeviceFactory
 
 # client = httpx.Client(http2=True)
 #
@@ -60,34 +61,39 @@ def _save_cached_credentials(creds: Credentials):
         creds_file.write(json.dumps(creds.model_dump()))
 
 
-try:
+# try:
 
     # creds = _load_cached_credentials()
-
-    h = HttpApi()
-
+    #
+    # h = HttpApi()
+    #
     # h.options_session()
     # credentials: Credentials = h.post_session(EMAIL, PASSWORD)
     # h.get_session(credentials)
-
-    credentials: Credentials = Credentials(id=10, token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjI3MTA2LCJpc3MiOiJodHRwOi8vc3BoaW54LXVzbTo0MDcwL2FwaS92MS91c2VyL2xvZ2luIiwiaWF0IjoxNjkxOTYwMzgyLCJleHAiOjE2OTQ1NTIzODIsIm5iZiI6MTY5MTk2MDM4MiwianRpIjoiejVvNXhzU2NkODFMOFRFNSJ9.MOb2wAr4AVKUUEIe3kgdJpZE_rqEljOCCznHoEigBu8")
-
-    if not credentials:
-        raise AuthFailed()
-
-    ws = fansync.Websocket(credentials.token)
-    ws.connect()
-
-    try:
-        ws.login()
-    except Exception as e:
-        print(e)
-        ws.close()
-
-    devices: ListDevicesResponse = ws.list_devices()
-    for device in devices.data:
-        d: GetDeviceResponse = ws.get_device(device)
-
+    #
+    # # credentials: Credentials = Credentials(id=10, token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjI3MTA2LCJpc3MiOiJodHRwOi8vc3BoaW54LXVzbTo0MDcwL2FwaS92MS91c2VyL2xvZ2luIiwiaWF0IjoxNjkxOTYwMzgyLCJleHAiOjE2OTQ1NTIzODIsIm5iZiI6MTY5MTk2MDM4MiwianRpIjoiejVvNXhzU2NkODFMOFRFNSJ9.MOb2wAr4AVKUUEIe3kgdJpZE_rqEljOCCznHoEigBu8")
+    #
+    # if not credentials:
+    #     raise AuthFailed()
+    #
+    # ws = fansync.Websocket(credentials.token)
+    # ws.connect()
+    #
+    # try:
+    #     ws.login()
+    #     ws.provision_token()
+    # except Exception as e:
+    #     print(e)
+    #     ws.close()
+    #
+    #
+    # def run(self):
+    #     devices: ListDevicesResponse = self.list_devices()
+    #     for device in devices.data:
+    #         d: GetDeviceResponse = self.get_device(device)
+    #         self._devices[d.data.device] = Device(self, device.properties.displayName, d)
+    #
+    #
 
     # listDeviceResponse = f.ws_list_devices()
     # for i in range(100):
@@ -96,23 +102,13 @@ try:
     #         f.ws_get_device(device)
 
     # time.sleep(100.0)
-finally:
-    pass
+# finally:
+#     pass
     # f.close()
 
+with open("test/http/info-model.json") as infoModel:
+    df: DeviceFactory = DeviceFactory(json.loads(infoModel.read()))
 
-
-
-
-# f.fuzz("https://fanimation.apps.exosite.io/api:1/fw/list/[]")
-
-# Describes the capacities of the various fan/light combinations
-# f.fuzz("https://fanimation.apps.exosite.io/api:1/info-model")
-
-# List the firmware revisions for a given model
-# f.fuzz("https://fanimation.apps.exosite.io/api:1/fw/list/[\"OdynCustom-FDR1L2\"]")
-
-
-
-
-
+with open("test/websocket/get_response.json") as getResponse:
+    gdr: GetDeviceResponse = GetDeviceResponse(**json.loads(getResponse.read()))
+    df.get_device(gdr)

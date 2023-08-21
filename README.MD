@@ -135,7 +135,9 @@ Response:
 
 ##### Sample Decoded Token
 Appears to be a [JSON Web Token](https://en.wikipedia.org/wiki/JSON_Web_Token).  The fields
-should be referenced from the wiki, but I'll annotate interesting things
+should be referenced from the wiki, but I'll annotate interesting things.  Note, the 
+clients don't appear to introspect this token at all.  Huh..
+
 **Header**
 {"typ":"JWT","alg":"HS256"}
 

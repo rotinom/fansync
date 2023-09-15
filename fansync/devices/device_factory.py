@@ -68,15 +68,29 @@ class DeviceFactory:
         # based on the parameters that are in the InfoModel
         d = Device(display_name, device_response.data.profile.esh.device_id)
 
+        model_dict = {}
+
+
         # The device has N keys associated with it.  Those keys are enumerated in the InfoModel
         # that we have discovered.  So let's match those.
         for k in device_response.data.fields:
             for ck in found_model.informationModel.components:
                 cv: InfoModel.Component = found_model.informationModel.components[ck]
-                if cv.models[0].key == k:
-                    print(f"{k} - {ck}")
+                for m in cv.models:
+                    if m.key == k:
+                        model_dict[k] = m
+                        # print(f"{k} - {m}")
 
+        # Map the error field(s)
+        for k in device_response.data.fields:
+            for e in found_model.informationModel.errorFields:
+                if e.key == k:
+                    model_dict[k] = e
+                    # print(f"{k} - Error Field")
 
+        # Print out our map
+        for key, value in model_dict.items():
+            print(f'{key} - {value}')
 
         # d.fans.append(Fan())
 

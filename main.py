@@ -106,9 +106,12 @@ def _save_cached_credentials(creds: Credentials):
 #     pass
     # f.close()
 
+with open("test/websocket/lst_device_response.json") as listDevicesModel:
+    ldr: ListDevicesResponse = ListDevicesResponse(**json.loads(listDevicesModel.read()))
+
 with open("test/http/info-model.json") as infoModel:
     df: DeviceFactory = DeviceFactory(json.loads(infoModel.read()))
 
 with open("test/websocket/get_response.json") as getResponse:
     gdr: GetDeviceResponse = GetDeviceResponse(**json.loads(getResponse.read()))
-    df.get_device(gdr)
+    df.get_device(ldr.data[0].properties.displayName, gdr)

@@ -1,17 +1,37 @@
 
 from typing import Optional
 from pydantic import BaseModel, Field, SecretStr, field_serializer
+from typing import Union
 
 from fansync.devices.light import field_mapping_
 
 
 class InfoModel(BaseModel):
+    class ModelValue(BaseModel):
+        value: int
+        text: str
+
+    class Model(BaseModel):
+        key: str
+        # Either a LIST of value -> text  OR  a DICT of string -> int | str
+        values: Union[dict[str, Union[int, str]], list['ModelValue']]
+
+    class Component(BaseModel):
+        type: str
+        models: list['Model']
+        title: str
+
+    class ErrorFields(BaseModel):
+        key: str
+        values: list['ModelValue']
+
     class InformationModel(BaseModel):
         scheduleLayout: dict[str, list[str]]
         familyMembers: list[str]
         deviceId: str
         familyName: str
-        components: dict[str, dict]
+        components: dict[str, 'Component']
+        errorFields: list['ErrorFields']
 
     timestamp: int
     size: int
@@ -149,31 +169,6 @@ class GetDeviceResponse(Response):
         device: str
         connected: int
         device_state: str
-
-        # Not doing it this way right now.
-        # def get_fan_percent(self):
-        #     return self.status[field_mapping_['FAN_PERCENT']]
-        #
-        # def get_fan_power(self):
-        #     return self.status[field_mapping_['FAN_POWER']] == 1
-        #
-        # def get_fan_mode(self):
-        #     return fan_mode_[self.status[field_mapping_['FAN_MODE']]]
-        #
-        # def get_fan_direction(self):
-        #     return fan_direction_[self.status[field_mapping_['FAN_DIRECTION']]]
-        #
-        # def get_light_percent(self):
-        #     return self.status[field_mapping_['LIGHT_PERCENT']]
-        #
-        # def get_light_power(self):
-        #     return self.status[field_mapping_['LIGHT_POWER']]
-        #
-        # def get_home_away(self):
-        #     return self.status[field_mapping_['HOME_AWAY']] == 1
-
-        # class Config:
-        #     exclude = ['calendar']
 
     data: Data
 

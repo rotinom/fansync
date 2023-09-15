@@ -9,10 +9,13 @@ class Device:
     """
     def __init__(self,
                  display_name: str,
-                 device):
+                 device_id: str):
 
         self.display_name: str = display_name
-        self.device: str = device
+        self.device_id: str = device_id
 
         self.lights: list[Light] = []
         self.fans: list[Fan] = []
+
+        # IDK, you can set modes.  This should be on the fan?
+        # self.modes: list[Mode]

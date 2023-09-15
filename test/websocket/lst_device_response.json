@@ -1,0 +1,17 @@
+{
+  "status": "ok",
+  "response": "lst_device",
+  "data": [
+    {
+      "owner": "rotinom@gmail.com",
+      "device": "2C05472869A8B09109630400",
+      "properties": {
+        "displayName": "Porch",
+        "deviceHasBeenConfigured": true,
+        "ignoreUpdateVersion": "1.7.1"
+      },
+      "role": "owner"
+    }
+  ],
+  "id": 2
+}

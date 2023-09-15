@@ -1,7 +1,5 @@
-from websockets.client import ClientConnection
+from typing import Optional
 
-from fansync import DeviceFactory
-from fansync.models import *
 
 # # Not really a facade.  Trying this whole thing out right now
 # class Device:
@@ -15,6 +13,37 @@ from fansync.models import *
 #     # Update with data from set_device
 #     def set_device_state(self, device_state: GetDeviceResponse):
 #         self._device = self._df.
+
+
+class Sprocket:
+    def __init__(self, key: str, val: int = None):
+        self._key: str = key
+        self._val: Optional[int] = val
+        self._enabled: bool = True
+        self.on_val_change = []
+
+    def _get_val(self):
+        return self._val
+
+    def _set_val(self, val: int):
+        if self._val != val:
+            self._val = val
+
+            # Invoke all our registered callbacks
+            for callback in self.on_val_change:
+                callback(self)
+
+    val = property(_get_val, _set_val)
+
+    def _get_enabled(self):
+        return self._enabled
+
+    def _set_enabled(self, val: bool):
+        self._enabled = val
+
+    enabled = property(_get_enabled, _set_enabled)
+
+
 
 
 class Light:

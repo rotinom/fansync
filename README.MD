@@ -20,55 +20,203 @@ on-off control of the features of a fan-light combo.  Anything else comes
 after that.*
 
 
+## Install
+* Requires python 3 installed. Follow instructions to make that happen from 
+  python.org
+  * `pip3 install websocket-client`
 
-## Protocol
+## Testing Challenges
+There are some kind of limits in place for these API's.  Because none of this
+is documented, it's a lot of trying to figure out and guess what's going on.
+During parts of my testing, I'm getting no response from the websocket 
+`login` request.  I'm able to get past it (sometimes) when needed, but it 
+seems to crop up out of nowhere.
+
+Additionally, the phone apps don't seem to be affected by this.  There are
+still variances between the phone functionality, such as TLS and HTTP
+versions.  Calling the API's in just the right order with the right timings
+(I don't suspect a variation on [port knocking](https://en.wikipedia.org/wiki/Port_knocking)
+at this point in time)
+
+# Protocol
 As it stands, the protocol is split into https REST API's as well as secure 
 websockets for "real time" command and control.  Let's dig in.
 
-### Note on TLS
-It appears that the TLS certificates in use are not to be trusted.  I didn't
+## Overview
+TLS certificate trust need to be disabled for the connections. I didn't
 dig into this too much, but that's the lay of the land.
 
-### Note on Request ID's
-I'm not SUPER experienced w/ websockets and front-end coding, but their 
-request/response framework is a bit weird to me.  Maybe it makes more sense
-if I was.  My gut tells me that a lot of this was done using the async/await
-paradigm, but my brain doesn't work that way as of yet.  I'm going w/ a 
-"traditional" threads approach w/ my POC.  
 
-I *think* that the initial ID for a session is handed to the client via the 
-`id` field in the LOGIN response.  This doesn't appear to be strictly required either.
+
+## REST
+
+The following is a list of the API's discovered so far
+
+| HTTP Verb | Auth? | Description                                                                                                    | URL                                                                      |
+|-----------|-------|----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| GET       | No    | Retrieve progamatic logic for managing devices                                                                 | https://fanimation.apps.exosite.io/api:1/info-model                      |
+| OPTIONS   | No    | Pre-flight authorization setup to retrieve list of firmware for a given device.  Not required?                 | https://fanimation.apps.exosite.io/api:1/fw/list/[<device-name>]    [^1] |
+| GET       | No    | Retrieve list of firmware for a given device                                                                   | https://fanimation.apps.exosite.io/api:1/fw/list/[<device-name>]    [^1] |
+| OPTIONS   | No    | Part of the auth sequence.  Seems to be something<br/>used for pre-flight of the auth sequence.  Not required? | https://fanimation.apps.exosite.io/api:1/session                         |
+| GET       | Yes   | Part of the auth sequence.  Used to validate token                                                             | https://fanimation.apps.exosite.io/api:1/session                         |
+| POST      | No    | Part of the auth sequence.  Used to retrieve token                                                             | https://fanimation.apps.exosite.io/api:1/session                         |
+
+UI / App related URL's
+
+| HTTP Verb | Auth? | Description                               | URL                                                           |
+|-----------|-------|-------------------------------------------|---------------------------------------------------------------|
+| GET       | No    | Get navbar logo                           | https://fanimation.apps.exosite.io/theme/logo_navbar.png [^2] |
+| GET       | No    | Get fanimation logo                       | https://fanimation.apps.exosite.io/theme/logo.png             |
+| GET       | No    | Get text values for various UI components | https://fanimation.apps.exosite.io/api:1/theme  [^3]          |
+
+
+[^1]: For example: https://fanimation.apps.exosite.io/api:1/fw/list/[\"OdynCustom-FDR1L2\"]
+
+[^2]: Not functional at time of writing
+
+[^3]: Total speculation - This could be internationalization enabled via `accept-language` header?
+
+
+### OPTIONS /api:1/session - Pre-flight of authorization request
+
+This doesn't strictly seem to be required.  I've not used this and also used it.  It doesn't seem to make a difference.
+
+Sniffed traffic:
+```
+        Header: :method: OPTIONS
+        Header: :authority: fanimation.apps.exosite.io
+        Header: :scheme: https
+        Header: :path: /api:1/session
+        Header: accept: */*
+        Header: access-control-request-method: GET
+        Header: access-control-request-headers: authorization,content-type
+        Header: origin: http://localhost
+        Header: user-agent: <USER-AGENT>
+        Header: sec-fetch-mode: cors
+        Header: x-requested-with: com.fanimation.fanSyncW
+        Header: sec-fetch-site: cross-site
+        Header: sec-fetch-dest: empty
+        Header: referer: http://localhost/
+        Header: accept-encoding: gzip, deflate, br
+        Header: accept-language: en-US,en;q=0.9
+        [Full request URI: https://fanimation.apps.exosite.io/api:1/session]
+```
+
+### POST /api:1/session - Getting Authentication Token
+
+
+#### Basic Authentication
+This deals with authenticating to the Fanimation / FanSync service itself.  A plain old username@domain.com email
+address.  Not w/ Facebook or anything else.  
+The login process appears to be a two-phase approach.  First you fire off an
+`OPTIONS` request (although it doesn't appear to be strictly required) and then
+you `POST` a blob w/ your email/password and get back a token and an ID.
+
+The ID does not appear to be used anywhere.  It's not used on the websocket side of the house.  When
+the websocket connects, the ID count starts at 1 and increments from there.  
+
+`POST https://fanimation.apps.exosite.io/api:1/session`
+
+Request Body:
+```
+{
+    "email": "<EMAIL>@<DOMAIN>.com",
+    "password": "<PASSWORD-IN-APP>"
+}
+```
+
+Response:
+```json5
+{
+    "id": "12345",   // Numeric USER ID
+    "token": "[BASE-64 JWT TOKEN]"
+}
+```
+
+##### Sample Decoded Token
+Appears to be a [JSON Web Token](https://en.wikipedia.org/wiki/JSON_Web_Token).  The fields
+should be referenced from the wiki, but I'll annotate interesting things.  Note, the 
+clients don't appear to introspect this token at all.  Huh..
+
+**Header**
+{"typ":"JWT","alg":"HS256"}
+
+**Payload**
+```json5
+{
+  "sub": 12345, // Numeric USER ID
+  "iss":"http://sphinx-usm:4070/api/v1/user/login", // Some internal URL?
+  "iat":1691960382, // unix epoch time in seconds
+  "exp":1694552382, // unix epoch time in seconds
+  "nbf":1691960382, // unix epoch time in seconds
+  "jti":"[PURPOSEFULLY OMITTED]"
+}
+
+```
+**Signature**
+```PURPOSEFULLY OMITTED```
+
+This is kept for clarity.  I omitted this, because it has sensitive info. This appeared
+to be binary data, which makes sense for what the spec says it is.
+
+
+
+#### SSO Authentication
+There is the ability to login using Facebook, Google, and other auth providers.  I haven't explored how to do this yet.
+
+
+
+## Websocket
+
+List of known values for `request` field in JSON 
+
+| id                | C/R/U/D | Description                                           |
+|-------------------|---------|-------------------------------------------------------|
+| `provision_token` | Update  | Looks like it's used at some points right after login |
+| `get_me`          | Read    | TBD                                                   |
+| `config`          | TBD     | TBD                                                   |
+| `set`             | Update  | Set device field values                               |
+| `get`             | READ    | Get device information                                |
+| `ota`             | TBD     | TBD                                                   |
+| `calendar`        | TBD     | TBD                                                   |
+| `add_user`        | Create? | TBD                                                   |
+| `add_user_verify` | TBD     | TBD                                                   |
+| `add_user`        | TBD     | TBD                                                   |
+| `rem_user`        | TBD     | TBD                                                   |
+| `lst_user`        | TBD     | TBD                                                   |
+| `lst_device`      | Read    | List all devices in the account                       |
+| `set_properties`  | TBD     | TBD                                                   |
+| `del_properties`  | TBD     | TBD                                                   |
+| `del_device`      | TBD     | TBD                                                   |
+| `set_group`       | TBD     | TBD                                                   |
+| `get_group`       | TBD     | TBD                                                   |
+| `del_group`       | TBD     | TBD                                                   |
+| `lst_group`       | Read    | List device groups?                                   |
+| `set_user_data`   | TBD     | TBD                                                   |
+| `del_user_data`   | TBD     | TBD                                                   |
+| `get_user_data`   | TBD     | TBD                                                   |
+
+### Note on Request ID's
 
 Request id's are monotonically updated for each request, and the corresponding response
 has the request id reflected in it.  This does allow for multi-threaded apps
 to be able to tie a given request-response pair, but it really feels cumbersome.
 IDK.  I think a likely takeaway is "don't issue too many commands at a time".
 
-Websocket messages are split into at least three categories:
-* Request
-* Response
-* Event
 
-#### Request
+
+### Request
 It's a request.  You give it an `id` in the request the type of `request` it 
 is, and then any `data` required.  Look at the [models](fansync/models/__init__.py)
 for the code that documents this better.
 
-Sample:
-```
-{"id":8,"request":"set","device":"<device_id>","data":{"H00":1}}
-```
 
-#### Response
+### Response
 The response will have the `id` and the type of `response` it was. It will
 finally have a `status` (of which, I've only observed `ok`)
 
-**Sample**
-```
-{"status":"ok","response":"set","id":8}
-```
 
-#### Event
+### Event
 When a change is requested from client -> server, the response to the request
 is given (as shown above).  In addition to this, a server-side event is also
 fired (presumably to all connected clients) to allow them to update their 
@@ -80,8 +228,27 @@ in the `set` request, and the latter is the server-side update event actually
 reflecting 'reality'.
 
 **Sample**
-```
-{"data":{"changes":{"status":{"H01":0,"H05":0,"H0D":0,"H06":0,"H0E":0,"H0B":0,"H00":1,"H0C":82,"H02":86}},"device":"<device_id>"},"event":"device_change"}
+```json5
+{
+  "data": {
+      "changes": {
+          // These appear to be mapped differently per device, so you'll need to translate these
+          "status": {
+              "H01":0,
+              "H05":0,
+              "H0D":0,
+              "H06":0,
+              "H0E":0,
+              "H0B":0,
+              "H00":1,
+              "H0C":82,
+              "H02":86
+            }
+        },
+      "device":"<device_id>"
+  },
+  "event":"device_change"
+}
 ```
 
 
@@ -112,137 +279,10 @@ Decoding this in a basic manner will open up control of all FanSync hardware.
 
 <u>Edit 2</u> - *There is no god.*
 
-[Sample Output](./docs/fw-list.md)
+[Sample Output](./test/http/info-model.json)
 
 
-
-#### /fw/list
-**URI** 
-`GET https://fanimation.apps.exosite.io/api:1/fw/list/[%22OdynCustom-FDR1L2%22]`
-
-**Description**
-This appears to return a list of the firmware available for the given model.
-Not totally sure where this model name comes from, but it's there.
-
-<details>
-
-  <summary>Sample Output</summary>
-
-```
-[
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS42LjV8MS42LjN8ZGU4YzAxYjBiZGU5YTE3NjI4MmE2OWI1NmYwMTA5ODdhODlhNDMzZHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.6.5",
-    "size": 403638,
-    "previousVersion": "1.6.3",
-    "sha1": "de8c01b0bde9a176282a69b56f010987a89a433d",
-    "name": "MS42LjV8MS42LjN8ZGU4YzAxYjBiZGU5YTE3NjI4MmE2OWI1NmYwMTA5ODdhODlhNDMzZHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS43LjF8MS42LjV8MjM2NGYwZTc4NWQ1NzJkNThkMzk5NTJmMTdkNmRkOWExMzQ3NzA5Y3xPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.7.1",
-    "size": 404150,
-    "previousVersion": "1.6.5",
-    "sha1": "2364f0e785d572d58d39952f17d6dd9a1347709c",
-    "name": "MS43LjF8MS42LjV8MjM2NGYwZTc4NWQ1NzJkNThkMzk5NTJmMTdkNmRkOWExMzQ3NzA5Y3xPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS43LjF8MS42LjR8MjM2NGYwZTc4NWQ1NzJkNThkMzk5NTJmMTdkNmRkOWExMzQ3NzA5Y3xPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.7.1",
-    "size": 404150,
-    "previousVersion": "1.6.4",
-    "sha1": "2364f0e785d572d58d39952f17d6dd9a1347709c",
-    "name": "MS43LjF8MS42LjR8MjM2NGYwZTc4NWQ1NzJkNThkMzk5NTJmMTdkNmRkOWExMzQ3NzA5Y3xPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS42LjJ8MS42LjF8YmRkMzk3YzFmNDExZDVjNjQ4MzUzOTAyZGE4NDc5MjYzNDkyMGMwNnxPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.6.2",
-    "size": 404110,
-    "previousVersion": "1.6.1",
-    "sha1": "bdd397c1f411d5c648353902da84792634920c06",
-    "name": "MS42LjJ8MS42LjF8YmRkMzk3YzFmNDExZDVjNjQ4MzUzOTAyZGE4NDc5MjYzNDkyMGMwNnxPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS42LjN8MS42LjJ8YWUzMTM1OGUxMmU5NTVjMmRhY2U2MjY3NmU2ODVlMjAyZGY4MDhjNXxPZHluQ3VzdG9tLUZEUjFMMnx0cmlnZ2Vy",
-    "version": "1.6.3",
-    "size": 404566,
-    "previousVersion": "1.6.2",
-    "sha1": "ae31358e12e955c2dace62676e685e202df808c5",
-    "name": "MS42LjN8MS42LjJ8YWUzMTM1OGUxMmU5NTVjMmRhY2U2MjY3NmU2ODVlMjAyZGY4MDhjNXxPZHluQ3VzdG9tLUZEUjFMMnx0cmlnZ2Vy",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS42LjF8MS4yLjZ8OTkwYTc3NTY5YzI4MDZmZDNjMDg3ZDJlYTU1YmI3ZjU2Mjk3ZWYwOHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.6.1",
-    "size": 407054,
-    "previousVersion": "1.2.6",
-    "sha1": "990a77569c2806fd3c087d2ea55bb7f56297ef08",
-    "name": "MS42LjF8MS4yLjZ8OTkwYTc3NTY5YzI4MDZmZDNjMDg3ZDJlYTU1YmI3ZjU2Mjk3ZWYwOHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  },
-  {
-    "url": "https://fanimation.apps.exosite.io/fw/content/MS42LjF8MS40LjB8OTkwYTc3NTY5YzI4MDZmZDNjMDg3ZDJlYTU1YmI3ZjU2Mjk3ZWYwOHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "version": "1.6.1",
-    "size": 407054,
-    "previousVersion": "1.4.0",
-    "sha1": "990a77569c2806fd3c087d2ea55bb7f56297ef08",
-    "name": "MS42LjF8MS40LjB8OTkwYTc3NTY5YzI4MDZmZDNjMDg3ZDJlYTU1YmI3ZjU2Mjk3ZWYwOHxPZHluQ3VzdG9tLUZEUjFMMg",
-    "model": "OdynCustom-FDR1L2"
-  }
-]
-```
-
-</details>
-
-#### Login
-
-**Description**
-The login process appears to be a two-phase approach.  First you fire off an
-`OPTIONS` request (although it doesn't appear to be strictly required) and then
-you `POST` a blob w/ your email.password and get back a token and an ID
-
-`POST https://fanimation.apps.exosite.io/api:1/session`
-
-Request Body:
-```
-{
-    "email": "<EMAIL>@<DOMAIN>.com",
-    "password": "<PASSWORD-IN-APP>"
-}
-```
-
-Response:
-```
-{
-    "id": "XXXXX",   // Some numeric value
-    "token": "ey<SOME VALUE>"
-}
-```
-
-Websocket connect
-`wss://fanimation.apps.exosite.io:443/api:1/phone`
-
-
-Request:
-```
-{"id":1,"request":"login","data":{"token":"<login token>"}}
-```
-
-Response:
-```
-{"status":"ok","response":"login","id":1}
-```
-
-Websocket connection is now authorized, we're connected and ready to roll.
-
-We then need to list some things to get the devices in our account.  The real phone app pulls
-down  configuration stuff which is really boring to us in the HA world, so I'll gloss
-over it for now.  We see:
-
+# RAW Notes
 ```
 # Not needed?
 {"id":2,"request":"provision_token","data":{"expires_in":2592000}}

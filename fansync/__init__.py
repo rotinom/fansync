@@ -3,9 +3,10 @@ import os
 from json import JSONDecodeError
 
 import httpx
+from pydantic import SecretStr
 
 from fansync.exceptions import AuthFailed
-from fansync.device_factory import DeviceFactory
+from fansync.models import Response, Credentials, LoginResponse
 from fansync.websocket import *
 
 

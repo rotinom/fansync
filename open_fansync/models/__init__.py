@@ -2,7 +2,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field, SecretStr, field_serializer
 
-from fansync.devices.light import field_mapping_
+from open_fansync.devices.light import field_mapping_
 
 
 class InfoModel(BaseModel):

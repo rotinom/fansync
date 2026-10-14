@@ -5,12 +5,12 @@ import ssl
 from pydantic import SecretStr
 from websocket import WebSocketTimeoutException
 
-from fansync.exceptions import WebsocketAlreadyConnectedException, \
+from open_fansync.exceptions import WebsocketAlreadyConnectedException, \
     WebsocketAuthException, TimedOutException
-from fansync.facades import *
+from open_fansync.facades import *
 import websocket
 
-from fansync.models import Request, ProvisionTokenRequest, ProvisionTokenResponse, ListDevicesResponse, \
+from open_fansync.models import Request, ProvisionTokenRequest, ProvisionTokenResponse, ListDevicesResponse, \
     ListDevicesRequest, GetDeviceRequest, SetRequest, GetDeviceResponse, LoginRequest, WsLoginResponse
 
 

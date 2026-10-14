@@ -2,8 +2,8 @@ import json
 import re
 from typing import Optional
 
-from fansync.devices.device import Device
-from fansync.models import InfoModel, GetDeviceResponse
+from open_fansync.devices.device import Device
+from open_fansync.models import InfoModel, GetDeviceResponse
 
 """
 Fan/Light parameters specified in the information model 

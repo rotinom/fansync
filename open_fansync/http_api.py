@@ -1,13 +1,12 @@
-
-import os
-from json import JSONDecodeError
+import json
+from typing import Optional
 
 import httpx
 from pydantic import SecretStr
 
-from fansync.exceptions import AuthFailed
-from fansync.models import Response, Credentials, LoginResponse
-from fansync.websocket import *
+from open_fansync.exceptions import AuthFailed, WebsocketAuthException
+from open_fansync.models import Response, Credentials, LoginResponse
+from open_fansync.websocket import Websocket
 
 
 class HttpApi:
@@ -159,4 +158,3 @@ class HttpApi:
 
         # Save the credentials we finally got
         HttpApi._save_cached_credentials(creds)
-

@@ -1,0 +1,39 @@
+[project]
+name = "open-fansync"
+dynamic = ["version"]
+authors = [
+  { name="rotinom", email="rotinom@gmail.com" },
+]
+description = "Open library to control Fanimation Fansync compatible devices"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-2.0-only"
+license-files = ["LICEN[CS]E*"]
+dependencies = [
+  "websocket-client",
+  "httpx",
+  "pydantic",
+  "bidict",
+]
+
+[project.urls]
+Homepage = "https://github.com/rotinom/fansync"
+Issues = "https://github.com/rotinom/fansync/issues"
+
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["open_fansync"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/open_fansync", "/README.md", "/LICENSE"]
+
+[build-system]
+requires = ["hatchling >= 1.26", "hatch-vcs"]
+build-backend = "hatchling.build"

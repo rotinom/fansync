@@ -1,4 +1,4 @@
-from fansync import Light, Fan
+from open_fansync.facades import Light, Fan
 
 
 class Device:

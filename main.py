@@ -1,12 +1,12 @@
 #!./venv/bin/python
 
-import time
+import json
+import os
+from typing import Optional
 
-import fansync
-from fansync import websocket
-from fansync import *
-from SECRETS import *
-from fansync.devices.device_factory import DeviceFactory
+from open_fansync import *
+# from SECRETS import *
+from open_fansync.devices.device_factory import DeviceFactory
 
 # client = httpx.Client(http2=True)
 #
@@ -43,7 +43,7 @@ def _load_cached_credentials() -> Optional[Credentials]:
                 json_data = json.loads(cred_file.read())
                 _id = int(json_data["id"])
                 _token = json_data["token"]
-            except JSONDecodeError:
+            except json.JSONDecodeError:
                 print("Cached credentials file invalid")
                 return None
 
@@ -53,8 +53,6 @@ def _load_cached_credentials() -> Optional[Credentials]:
 
     print("failed")
     return None
-
-
 
 def _save_cached_credentials(creds: Credentials):
     with open(CREDENTIALS_FILE, "w") as creds_file:

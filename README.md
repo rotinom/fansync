@@ -1,8 +1,10 @@
-# FanSync Cloud API
+# open-fansync
 
-This is a reverse engineered version of the Fanimation FanSync API.  It works as of now, 
-but since this is undocumented, it's really up to them as to whether they'll break
-it.  If it does break, feel free to send a patch. 
+An open library for the Fanimation FanSync cloud API.  This is an unofficial project
+and is not affiliated with or endorsed by Fanimation.
+
+It works as of now, but since the API is undocumented, it's really up to them as to
+whether they'll break it.  If it does break, feel free to send a patch.
 
 ## Why?
 I like their fans, and I use HA.  It seems like peanut butter and chocolate that
@@ -21,9 +23,34 @@ after that.*
 
 
 ## Install
-* Requires python 3 installed. Follow instructions to make that happen from 
-  python.org
-  * `pip3 install websocket-client`
+`python -m pip install open-fansync`
+
+Install it as `open-fansync` and import it as `open_fansync`:
+
+```python
+from open_fansync import HttpApi, Websocket
+```
+
+## License
+Free to use under the [GPL v2](LICENSE).  If the GPL doesn't work for you
+(say, you want to ship this in a closed-source commercial product), reach out
+and I can license it to you separately.
+
+## Development setup
+ *Requires python 3 installed. Follow instructions to make that happen from 
+  python.org*
+
+* Create a python virtual environment for the project
+  * `python3 -m venv .venv`
+* Initialize your interpreter (do this every time you start developing)
+  * `source .venv/bin/activate`
+* Install dependencies
+  * `python -m pip install .`
+
+## Day to Day Development
+* `source .venv/bin/activate`
+
+
 
 ## Testing Challenges
 There are some kind of limits in place for these API's.  Because none of this
@@ -207,7 +234,7 @@ IDK.  I think a likely takeaway is "don't issue too many commands at a time".
 
 ### Request
 It's a request.  You give it an `id` in the request the type of `request` it 
-is, and then any `data` required.  Look at the [models](fansync/models/__init__.py)
+is, and then any `data` required.  Look at the [models](open_fansync/models/__init__.py)
 for the code that documents this better.
 
 
